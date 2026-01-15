@@ -22,14 +22,31 @@ Usage:
 from dataclasses import dataclass, field
 
 
-def _safe_int(value, default: int) -> int:
-    """Safely convert value to int, returning default if None or invalid."""
+def _get(data: dict, key: str, default):
+    """Get value from dict, treating None as missing (returns default)."""
+    value = data.get(key)
+    return default if value is None else value
+
+
+def _get_int(data: dict, key: str, default: int) -> int:
+    """Get int value from dict, with safe conversion."""
+    value = data.get(key)
     if value is None:
         return default
     try:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _get_list(data: dict, key: str, fallback_key: str | None = None) -> list:
+    """Get list value from dict, with optional fallback key."""
+    value = data.get(key)
+    if value is not None:
+        return value
+    if fallback_key:
+        return data.get(fallback_key) or []
+    return []
 
 
 @dataclass
@@ -47,11 +64,11 @@ class DatabaseConfig:
         if not data:
             return cls()
         return cls(
-            name=data.get('name', ''),
-            host=data.get('host', 'localhost'),
-            user=data.get('user', ''),
-            password=data.get('password', ''),
-            port=_safe_int(data.get('port'), 3306),
+            name=_get(data, 'name', ''),
+            host=_get(data, 'host', 'localhost'),
+            user=_get(data, 'user', ''),
+            password=_get(data, 'password', ''),
+            port=_get_int(data, 'port', 3306),
         )
 
 
@@ -72,13 +89,13 @@ class JumpHostConfig:
         if not data:
             return None
         return cls(
-            host=data.get('host', ''),
-            user=data.get('user', ''),
-            password=data.get('password'),
-            ssh_key=data.get('ssh_key'),
-            port=_safe_int(data.get('port'), 22),
-            private=data.get('private'),
-            name=data.get('name'),
+            host=_get(data, 'host', ''),
+            user=_get(data, 'user', ''),
+            password=data.get('password'),  # None is valid
+            ssh_key=data.get('ssh_key'),  # None is valid
+            port=_get_int(data, 'port', 22),
+            private=data.get('private'),  # None is valid
+            name=data.get('name'),  # None is valid
         )
 
 
@@ -105,19 +122,19 @@ class ClientConfig:
         if not data:
             return cls()
         return cls(
-            path=data.get('path', ''),
-            name=data.get('name', ''),
-            host=data.get('host', ''),
-            user=data.get('user', ''),
-            password=data.get('password'),
-            ssh_key=data.get('ssh_key'),
-            port=_safe_int(data.get('port'), 22),
-            dump_dir=data.get('dump_dir', '/tmp/'),
-            keep_dumps=data.get('keep_dumps'),
+            path=_get(data, 'path', ''),
+            name=_get(data, 'name', ''),
+            host=_get(data, 'host', ''),
+            user=_get(data, 'user', ''),
+            password=data.get('password'),  # None is valid
+            ssh_key=data.get('ssh_key'),  # None is valid
+            port=_get_int(data, 'port', 22),
+            dump_dir=_get(data, 'dump_dir', '/tmp/'),
+            keep_dumps=data.get('keep_dumps'),  # None is valid
             db=DatabaseConfig.from_dict(data.get('db')),
             jump_host=JumpHostConfig.from_dict(data.get('jump_host')),
-            after_dump=data.get('after_dump'),
-            post_sql=data.get('post_sql') or [],
+            after_dump=data.get('after_dump'),  # None is valid
+            post_sql=_get_list(data, 'post_sql'),
         )
 
     @property
@@ -187,33 +204,42 @@ class SyncConfig:
         :return: SyncConfig instance
         """
         return cls(
-            verbose=data.get('verbose', False),
-            mute=data.get('mute', False),
-            dry_run=data.get('dry_run', False),
-            yes=data.get('yes', False),
-            keep_dump=data.get('keep_dump', False),
-            dump_name=data.get('dump_name', ''),
-            check_dump=data.get('check_dump', True),
-            clear_database=data.get('clear_database', False),
-            import_file=data.get('import', ''),
-            tables=data.get('tables', ''),
-            where=data.get('where', ''),
-            additional_mysqldump_options=data.get('additional_mysqldump_options', ''),
-            ignore_tables=data.get('ignore_tables') or data.get('ignore_table') or [],
-            truncate_tables=data.get('truncate_tables') or data.get('truncate_table') or [],
-            use_rsync=data.get('use_rsync', True),
-            use_rsync_options=data.get('use_rsync_options'),
-            use_sshpass=data.get('use_sshpass', False),
-            ssh_agent=data.get('ssh_agent', False),
-            force_password=data.get('force_password', False),
-            link_hosts=data.get('link_hosts', ''),
-            link_origin=data.get('link_origin'),
-            link_target=data.get('link_target'),
-            config_file_path=data.get('config_file_path'),
-            is_same_client=data.get('is_same_client', False),
-            default_origin_dump_dir=data.get('default_origin_dump_dir', True),
-            default_target_dump_dir=data.get('default_target_dump_dir', True),
-            type=data.get('type'),
+            # General options
+            verbose=_get(data, 'verbose', False),
+            mute=_get(data, 'mute', False),
+            dry_run=_get(data, 'dry_run', False),
+            yes=_get(data, 'yes', False),
+            # Dump options
+            keep_dump=_get(data, 'keep_dump', False),
+            dump_name=_get(data, 'dump_name', ''),
+            check_dump=_get(data, 'check_dump', True),
+            clear_database=_get(data, 'clear_database', False),
+            import_file=_get(data, 'import', ''),
+            # Table options
+            tables=_get(data, 'tables', ''),
+            where=_get(data, 'where', ''),
+            additional_mysqldump_options=_get(data, 'additional_mysqldump_options', ''),
+            ignore_tables=_get_list(data, 'ignore_tables', 'ignore_table'),
+            truncate_tables=_get_list(data, 'truncate_tables', 'truncate_table'),
+            # Transfer options
+            use_rsync=_get(data, 'use_rsync', True),
+            use_rsync_options=data.get('use_rsync_options'),  # None is valid
+            use_sshpass=_get(data, 'use_sshpass', False),
+            # SSH options
+            ssh_agent=_get(data, 'ssh_agent', False),
+            force_password=_get(data, 'force_password', False),
+            # Host linking
+            link_hosts=_get(data, 'link_hosts', ''),
+            link_origin=data.get('link_origin'),  # None is valid
+            link_target=data.get('link_target'),  # None is valid
+            # Internal state
+            config_file_path=data.get('config_file_path'),  # None is valid
+            is_same_client=_get(data, 'is_same_client', False),
+            default_origin_dump_dir=_get(data, 'default_origin_dump_dir', True),
+            default_target_dump_dir=_get(data, 'default_target_dump_dir', True),
+            # Framework type
+            type=data.get('type'),  # None is valid
+            # Client configurations
             origin=ClientConfig.from_dict(data.get('origin')),
             target=ClientConfig.from_dict(data.get('target')),
         )
