@@ -11,6 +11,33 @@ from db_sync_tool.utility import mode, system, helper, output
 
 def check_configuration(client):
     """
+    Checking Drupal database configuration.
+    First tries to parse settings.php directly, falls back to Drush if needed.
+    :param client: String
+    :return:
+    """
+    _path = system.config[client]['path']
+
+    # Try direct settings.php parsing first
+    try:
+        _db_config = parse_settings_php(client, _path)
+        if _db_config and _db_config.get('name') and _db_config.get('host'):
+            output.message(
+                output.host_to_subject(client),
+                'Parsed database config from settings.php',
+                True
+            )
+            system.config[client]['db'] = helper.clean_db_config(_db_config)
+            return
+    except Exception:
+        pass
+
+    # Fall back to Drush
+    check_configuration_drush(client)
+
+
+def check_configuration_drush(client):
+    """
     Checking Drupal database configuration with Drush
     :param client: String
     :return:
@@ -42,6 +69,53 @@ def check_configuration(client):
     _db_config = parse_database_credentials(json.loads(stdout))
 
     system.config[client]['db'] = helper.clean_db_config(_db_config)
+
+
+def parse_settings_php(client, path):
+    """
+    Parse database credentials directly from settings.php
+    :param client: String
+    :param path: String
+    :return: Dictionary or None
+    """
+    _db_config = {
+        'name': get_setting_value(client, 'database', path),
+        'host': get_setting_value(client, 'host', path),
+        'password': get_setting_value(client, 'password', path),
+        'port': get_setting_value(client, 'port', path) or 3306,
+        'user': get_setting_value(client, 'username', path),
+    }
+
+    return _db_config
+
+
+def get_setting_value(client, key, path):
+    """
+    Extract a single value from Drupal settings.php
+    Handles both 'key' => 'value' and 'key' => "value" formats
+    :param client: String
+    :param key: String
+    :param path: String
+    :return: String
+    """
+    # Try single quotes first, then double quotes
+    result = mode.run_command(
+        helper.get_command(client, 'sed') +
+        f' -n "s/.*\'{key}\' *=> *[\'\\"]\\([^\'\\"]*\\)[\'\\"].*/\\1/p" {path} | head -1',
+        client,
+        True
+    ).strip()
+
+    # For numeric values like port (without quotes)
+    if not result:
+        result = mode.run_command(
+            helper.get_command(client, 'sed') +
+            f' -n "s/.*\'{key}\' *=> *\\([0-9]*\\).*/\\1/p" {path} | head -1',
+            client,
+            True
+        ).strip()
+
+    return result
 
 
 def parse_database_credentials(db_credentials):

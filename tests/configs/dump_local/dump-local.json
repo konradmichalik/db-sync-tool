@@ -1,0 +1,9 @@
+{
+  "type": "TYPO3",
+  "target": {
+  },
+  "origin": {
+    "path": "/var/www/html/tests/fixtures/www2/LocalConfiguration.php",
+    "dump_dir": "/var/www/html/tests/fixtures/www2/database_backup/"
+  }
+}

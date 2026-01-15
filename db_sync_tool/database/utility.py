@@ -72,11 +72,14 @@ def truncate_tables():
                                                             _table.replace('*', '%'))
                 if _wildcard_tables:
                     for _wildcard_table in _wildcard_tables:
-                        _sql_command = f'TRUNCATE TABLE IF EXISTS {_wildcard_table}'
+                        _sql_command = f'TRUNCATE TABLE {_wildcard_table}'
                         run_database_command(mode.Client.TARGET, _sql_command, True)
             else:
-                _sql_command = f'TRUNCATE TABLE IF EXISTS {_table}'
-                run_database_command(mode.Client.TARGET, _sql_command, True)
+                # Check if table exists before truncating (MariaDB doesn't support IF EXISTS)
+                _existing_tables = get_database_tables_like(mode.Client.TARGET, _table)
+                if _existing_tables:
+                    _sql_command = f'TRUNCATE TABLE {_table}'
+                    run_database_command(mode.Client.TARGET, _sql_command, True)
 
 
 def generate_ignore_database_tables():

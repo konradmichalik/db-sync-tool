@@ -1,0 +1,15 @@
+{
+  "type": "TYPO3",
+  "target": {
+    "host": "www1",
+    "user": "user"
+  },
+  "origin": {
+    "host": "www1",
+    "user": "user",
+    "password": "password",
+    "path": "/var/www/html/tests/fixtures/www1/LocalConfiguration.php",
+    "dump_dir": "/var/www/html/tests/fixtures/www1/database_backup/",
+    "keep_dumps": 1
+  }
+}

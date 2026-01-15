@@ -1,73 +1,44 @@
-# Test environment
+# Tests
 
-## Execution
-
-Start the docker container:
+## Quick Start
 
 ```bash
- $ docker-compose up -d
+cd tests
+./run_tests.sh
 ```
 
-Install python dependencies in the containers:
-
+With options:
 ```bash
- $ docker-compose exec www1 pip3 install -r requirements.txt && docker-compose exec www2 pip3 install -r requirements.txt && docker-compose exec proxy pip3 install -r requirements.txt
+./run_tests.sh -v                    # verbose
+./run_tests.sh test_sync_modes.py    # single file
+./run_tests.sh -k "typo3"            # by name
 ```
 
-All possible scenarios will be executed by the following command:
+## Structure
 
-```bash
- $ sh helper/scenario.sh
+```
+tests/
+├── configs/         # Sync configurations (40 scenarios)
+├── docker/          # Docker infrastructure
+├── fixtures/        # Framework configs (www1/, www2/)
+├── test_*.py        # pytest tests
+└── run_tests.sh     # Test runner
 ```
 
-You can also run one specific test case by using the command:
+## Test Files
 
-```bash
- $ sh helper/scenario.sh [scenario]
+| File | Tests |
+|------|-------|
+| `test_sync_modes.py` | RECEIVER, SENDER, PROXY, SYNC_LOCAL, SYNC_REMOTE |
+| `test_frameworks.py` | TYPO3, Symfony, WordPress, Laravel, Drupal |
+| `test_features.py` | truncate, rsync, hosts, jump_host, etc. |
+| `test_import_dump.py` | DUMP_LOCAL, DUMP_REMOTE, IMPORT_LOCAL, IMPORT_REMOTE |
+| `test_special.py` | scripts, logging, shell mode, cleanup |
+
+## Architecture
+
 ```
-
-Use the verbose argument to enable extended console output:
-
-```bash
- $ sh helper/scenario.sh [scenario] -v
+www1 (db1) ←─SSH─→ www2 (db2)
+               ↑
+             proxy
 ```
-
-Select one of the following scenarios:
-
-- cleanup
-- download
-- drupal
-- dump_local
-- dump_remote
-- host
-- import_local
-- import_remote
-- jump_host
-- laravel
-- link
-- link_inline
-- logging
-- manual
-- module
-- overwrite
-- post_sql
-- proxy
-- receiver
-- reverse
-- rsync
-- scripts
-- sender
-- shell
-- symfony
-- symfony2.8
-- sync_local
-- sync_remote
-- sync_remote_manual
-- tables
-- truncate
-- typo3_additional
-- typo3v7
-- typo3_env
-- typo3-2_env
-- wordpress
-- yaml

@@ -1,18 +1,10 @@
-files/
-!files/www1/LocalConfiguration.php
-!files/www2/LocalConfiguration.php
-!files/www1/AdditionalConfiguration.php
-!files/www2/AdditionalConfiguration.php
-!files/www1/LocalConfiguration.typo3v7.php
-!files/www2/LocalConfiguration.typo3v7.php
-!files/www1/.env
-!files/www2/.env
-!files/www1/settings.php
-!files/www2/settings.php
-!files/www1/wp-config.php
-!files/www2/wp-config.php
-!files/www1/parameters.yml
-!files/www2/parameters.yml
-!files/www1/after_dump.sql
-!files/www1/typo3.env
-!files/www2/typo3.env
+# pytest artifacts
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Generated test files
+fixtures/*/database_backup/
+fixtures/*/download/
+fixtures/*/*.txt
+fixtures/test.log

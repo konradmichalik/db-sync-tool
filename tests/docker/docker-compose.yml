@@ -3,25 +3,28 @@ services:
         build: .
         volumes:
             - ../../:/var/www/html/
-        links:
-            - db1
         networks:
             - db-sync-tool
             - db1
         ports:
             - "2211:22"
+        depends_on:
+            db1:
+                condition: service_healthy
+
     www2:
         build: .
         volumes:
             - ../../:/var/www/html/
-        links:
-            - db2
         networks:
             - db-sync-tool
-            - db1
             - db2
         ports:
             - "2212:22"
+        depends_on:
+            db2:
+                condition: service_healthy
+
     proxy:
         build: .
         volumes:
@@ -30,43 +33,52 @@ services:
             - db-sync-tool
         ports:
             - "2213:22"
+
     db1:
-        image: mysql:5.7
-        platform: linux/x86_64
-        ports: 
+        image: mariadb:10.11
+        ports:
             - "33861:3306"
-        command: --default-authentication-plugin=mysql_native_password
-        restart: always
+        command: --skip-ssl
         environment:
-            MYSQL_DATABASE: db
-            MYSQL_USER: db
-            MYSQL_PASSWORD: db
-            MYSQL_ROOT_PASSWORD: db
+            MARIADB_DATABASE: db
+            MARIADB_USER: db
+            MARIADB_PASSWORD: db
+            MARIADB_ROOT_PASSWORD: db
         volumes:
-            - ./dump:/docker-entrypoint-initdb.d
-            - ./conf/1:/etc/mysql/conf.d
+            - ./initdb:/docker-entrypoint-initdb.d
             - ./dump/:/tmp/dump/
         networks:
+            - db-sync-tool
             - db1
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            start_period: 10s
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
     db2:
-        platform: linux/x86_64
-        image: mysql:5.7
+        image: mariadb:10.11
         ports:
             - "33862:3306"
-        command: --default-authentication-plugin=mysql_native_password
-        restart: always
+        command: --skip-ssl
         environment:
-            MYSQL_DATABASE: db
-            MYSQL_USER: db
-            MYSQL_PASSWORD: db
-            MYSQL_ROOT_PASSWORD: db
+            MARIADB_DATABASE: db
+            MARIADB_USER: db
+            MARIADB_PASSWORD: db
+            MARIADB_ROOT_PASSWORD: db
         volumes:
-            - ./conf/2:/etc/mysql/conf.d
+            - ./initdb:/docker-entrypoint-initdb.d
             - ./dump/:/tmp/dump/
         networks:
+            - db-sync-tool
             - db2
-volumes:
-    persistent:
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            start_period: 10s
+            interval: 5s
+            timeout: 5s
+            retries: 5
 
 networks:
     db-sync-tool:

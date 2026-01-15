@@ -1,0 +1,12 @@
+{
+  "type": "TYPO3",
+  "target": {
+    "path": "/var/www/html/tests/fixtures/www2/typo3.env"
+  },
+  "origin": {
+    "host": "www1",
+    "user": "user",
+    "password": "password",
+    "path": "/var/www/html/tests/fixtures/www1/typo3.env"
+  }
+}
