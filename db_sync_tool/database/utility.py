@@ -88,6 +88,7 @@ def create_mysql_config_file(client):
             force_output=True,
             skip_dry_run=True
         )
+        result = result.strip() if result else ''
         if result != 'OK':
             output.message(
                 output.Subject.WARNING,
