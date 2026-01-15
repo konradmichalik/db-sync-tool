@@ -3,7 +3,6 @@
 """
 Output script
 """
-import time
 from yaspin import yaspin
 from db_sync_tool.utility import log, mode, system
 

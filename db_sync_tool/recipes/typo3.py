@@ -4,7 +4,8 @@
 TYPO3 script
 """
 
-import json, sys
+import json
+import sys
 
 from db_sync_tool.utility import mode, system, helper, output
 
