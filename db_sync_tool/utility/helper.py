@@ -174,12 +174,11 @@ def get_ssh_host_name(client, with_user=False, minimal=False):
 
 def create_local_temporary_data_dir():
     """
-    Create local temporary data dir
+    Create local temporary data dir with secure permissions
     :return:
     """
-    # @ToDo: Combine with check_and_create_dump_dir()
-    if not os.path.exists(system.default_local_sync_path):
-        os.makedirs(system.default_local_sync_path)
+    # Use secure temp dir creation with 0700 permissions
+    system.create_secure_temp_dir(system.default_local_sync_path)
 
 
 def dict_to_args(dict):
