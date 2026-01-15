@@ -50,14 +50,14 @@ def create_origin_database_dump():
             _additional = system.config['additional_mysqldump_options']
             _mysqldump_options = _mysqldump_options + f'{_additional} '
 
-        # Run mysql dump command, e.g.
-        # mysqldump --no-tablespaces --defaults-file=... 'db' > /tmp/_db_08-10-2021_07-00.sql
+        # Run mysql dump command
+        # Note: --defaults-file MUST be the first option for MySQL/MariaDB
         _db_name = quote_shell_arg(system.config[mode.Client.ORIGIN]['db']['name'])
         _safe_dump_path = quote_shell_arg(_dump_file_path)
         mode.run_command(
-            helper.get_command(mode.Client.ORIGIN, 'mysqldump') + ' ' + _mysqldump_options +
+            helper.get_command(mode.Client.ORIGIN, 'mysqldump') + ' ' +
             database_utility.generate_mysql_credentials(mode.Client.ORIGIN) + ' ' +
-            _db_name + ' ' +
+            _mysqldump_options + _db_name + ' ' +
             database_utility.generate_ignore_database_tables() +
             database_utility.get_database_tables() +
             ' > ' + _safe_dump_path,

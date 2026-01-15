@@ -70,6 +70,9 @@ def create_mysql_config_file(client):
         config_content += f"host={db_config['host']}\n"
     if 'port' in db_config:
         config_content += f"port={db_config['port']}\n"
+    # Disable SSL by default (can be overridden in config)
+    if db_config.get('ssl', False) is False:
+        config_content += "ssl=0\n"
 
     random_suffix = secrets.token_hex(8)
     config_path = f"/tmp/.my_{random_suffix}.cnf"
@@ -296,7 +299,9 @@ def generate_mysql_credentials(client, force_password=True):
     """
     try:
         config_path = get_mysql_config_path(client)
-        credentials = f"--defaults-file='{config_path}'"
+        # Note: --defaults-file must NOT have quotes around the path
+        # mysqldump/mysql parse this option specially
+        credentials = f"--defaults-file={config_path}"
 
         if system.config.get('verbose', False):
             output.message(

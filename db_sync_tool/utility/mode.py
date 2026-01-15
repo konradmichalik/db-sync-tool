@@ -30,7 +30,7 @@ def sanitize_command_for_logging(command):
         (r'SSHPASS="[^"]*"', 'SSHPASS="***"'),
         (r"SSHPASS=[^\s]+", "SSHPASS=***"),
         # MySQL defaults-file contents (mask the path to prevent path disclosure)
-        (r"--defaults-file='[^']*'", "--defaults-file='***'"),
+        (r"--defaults-file=[^\s]+", "--defaults-file=***"),
         # Base64 encoded credentials (used in MySQL config file creation)
         (r"echo '[A-Za-z0-9+/=]{20,}' \| base64", "echo '***' | base64"),
     ]
