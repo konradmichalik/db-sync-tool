@@ -4,8 +4,8 @@
 ![PyPI](https://img.shields.io/pypi/v/db_sync_tool-kmi)
 ![Pepy Total Downloads](https://img.shields.io/pepy/dt/db-sync-tool-kmi)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/db-sync-tool-kmi)
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/?branch=master)
-[![Build Status](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/badges/build.png?b=master)](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/build-status/master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/badges/quality-score.png?b=main)](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/?branch=main)
+[![Build Status](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/badges/build.png?b=main)](https://scrutinizer-ci.com/g/jackd248/db-sync-tool/build-status/main)
 
 Python script to synchronize a database from an origin to a target system with automatic database credential extraction depending on the selected framework.
 
