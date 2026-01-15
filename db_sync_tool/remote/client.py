@@ -43,7 +43,11 @@ def load_ssh_client(ssh):
     """
     _host_name = helper.get_ssh_host_name(ssh, True)
     _ssh_client = paramiko.SSHClient()
-    _ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # Load known hosts from system for security (prevents MITM attacks)
+    _ssh_client.load_system_host_keys()
+    # Log warning for unknown hosts but still accept connection (convenience over strict security)
+    # Note: This does NOT prevent MITM - use RejectPolicy() for strict host verification
+    _ssh_client.set_missing_host_key_policy(paramiko.WarningPolicy())
 
     _ssh_port = system.config[ssh]['port'] if 'port' in system.config[ssh] else 22
     _ssh_key = None
@@ -134,7 +138,8 @@ def get_jump_host_channel(client):
     if 'jump_host' in system.config[client]:
         # prepare jump host config
         _jump_host_client = paramiko.SSHClient()
-        _jump_host_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        _jump_host_client.load_system_host_keys()
+        _jump_host_client.set_missing_host_key_policy(paramiko.WarningPolicy())
 
         _jump_host_host = system.config[client]['jump_host']['host']
         _jump_host_user = system.config[client]['jump_host']['user'] if 'user' in system.config[client]['jump_host'] else system.config[client]['user']

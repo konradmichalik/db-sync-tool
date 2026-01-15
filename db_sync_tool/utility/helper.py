@@ -7,15 +7,31 @@ Helper script
 import shutil
 import os
 import re
+import shlex
 from db_sync_tool.utility import mode, system, output
 from db_sync_tool.remote import utility as remote_utility
 
 
+def quote_shell_arg(arg):
+    """
+    Safely quote a string for use as a shell argument.
+    Prevents command injection by escaping special characters.
+
+    :param arg: String to quote
+    :return: Safely quoted string
+    """
+    if arg is None:
+        return "''"
+    return shlex.quote(str(arg))
+
+
 def clean_up():
     """
-    Clean up
+    Clean up temporary files and resources
     :return:
     """
+    # Note: MySQL config files are cleaned up in sync.py's finally block
+    # to ensure cleanup even on errors
     if not mode.is_import():
         remote_utility.remove_target_database_dump()
         if mode.get_sync_mode() == mode.SyncMode.PROXY:
@@ -118,8 +134,9 @@ def check_and_create_dump_dir(client, path):
     :param path:
     :return:
     """
+    _safe_path = quote_shell_arg(path)
     mode.run_command(
-        '[ ! -d "' + path + '" ] && mkdir -p "' + path + '"',
+        '[ ! -d ' + _safe_path + ' ] && mkdir -p ' + _safe_path,
         client
     )
 
@@ -153,12 +170,16 @@ def get_ssh_host_name(client, with_user=False, minimal=False):
 
 def create_local_temporary_data_dir():
     """
-    Create local temporary data dir
+    Create local temporary data dir with secure permissions
     :return:
     """
-    # @ToDo: Combine with check_and_create_dump_dir()
-    if not os.path.exists(system.default_local_sync_path):
-        os.makedirs(system.default_local_sync_path)
+    # Skip secure permissions for user-specified keep_dump directories
+    if system.config['keep_dump']:
+        if not os.path.exists(system.default_local_sync_path):
+            os.makedirs(system.default_local_sync_path)
+    else:
+        # Use secure temp dir creation with 0700 permissions
+        system.create_secure_temp_dir(system.default_local_sync_path)
 
 
 def dict_to_args(dict):
@@ -187,7 +208,8 @@ def check_file_exists(client, path):
     :param path: String file path
     :return: Boolean
     """
-    return mode.run_command(f'[ -f {path} ] && echo "1"', client, True) == '1'
+    _safe_path = quote_shell_arg(path)
+    return mode.run_command(f'[ -f {_safe_path} ] && echo "1"', client, True) == '1'
 
 
 def run_script(client=None, script='before'):

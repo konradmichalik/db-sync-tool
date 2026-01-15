@@ -4,11 +4,42 @@
 Mode script
 """
 
+import re
 import subprocess
 import sys
 
 from db_sync_tool.utility import system, output, helper
 from db_sync_tool.remote import system as remote_system
+
+
+def sanitize_command_for_logging(command):
+    """
+    Remove sensitive information from commands before logging.
+    This prevents credentials from appearing in verbose output or logs.
+
+    :param command: String command to sanitize
+    :return: String sanitized command
+    """
+    patterns = [
+        # MySQL password patterns (legacy format, should not appear with --defaults-file)
+        (r"-p'[^']*'", "-p'***'"),
+        (r'-p"[^"]*"', '-p"***"'),
+        (r"-p[^\s'\"]+", "-p***"),
+        # SSHPASS patterns
+        (r"SSHPASS='[^']*'", "SSHPASS='***'"),
+        (r'SSHPASS="[^"]*"', 'SSHPASS="***"'),
+        (r"SSHPASS=[^\s]+", "SSHPASS=***"),
+        # MySQL defaults-file contents (mask the path to prevent path disclosure)
+        (r"--defaults-file=[^\s]+", "--defaults-file=***"),
+        # Base64 encoded credentials (used in MySQL config file creation)
+        (r"echo '[A-Za-z0-9+/=]{20,}' \| base64", "echo '***' | base64"),
+    ]
+
+    sanitized = command
+    for pattern, replacement in patterns:
+        sanitized = re.sub(pattern, replacement, sanitized)
+
+    return sanitized
 
 
 #
@@ -292,9 +323,11 @@ def run_command(command, client, force_output=False, allow_fail=False, skip_dry_
     :return:
     """
     if system.config['verbose']:
+        # Sanitize command to prevent credentials from appearing in logs
+        _safe_command = sanitize_command_for_logging(command)
         output.message(
             output.host_to_subject(client),
-            output.CliFormat.BLACK + command + output.CliFormat.ENDC,
+            output.CliFormat.BLACK + _safe_command + output.CliFormat.ENDC,
             debug=True
         )
 
