@@ -1,9 +1,6 @@
 """Tests for import and dump modes."""
-import shutil
-import tarfile
 import pytest
-from pathlib import Path
-from conftest import get_row_count, file_exists_local, TESTS_DIR, CONFIGS
+from conftest import get_row_count, file_exists_local, exec_in_container, CONFIGS
 
 
 @pytest.mark.integration
@@ -25,10 +22,12 @@ def test_dump_remote(run_sync):
 @pytest.mark.integration
 def test_import_local(run_sync):
     """IMPORT_LOCAL: import existing dump locally."""
-    # Setup: Copy test dump
-    backup_dir = TESTS_DIR / "fixtures" / "www2" / "database_backup"
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy(TESTS_DIR / "docker" / "dump" / "test.sql", backup_dir / "test.sql")
+    # Setup: Copy test dump inside container (avoids permission issues)
+    exec_in_container("www2", [
+        "sh", "-c",
+        "mkdir -p /var/www/html/tests/fixtures/www2/database_backup && "
+        "cp /var/www/html/tests/docker/dump/test.sql /var/www/html/tests/fixtures/www2/database_backup/test.sql"
+    ])
 
     result = run_sync("www2", f"{CONFIGS}/import_local/import-local.json",
                       ["-i", "/var/www/html/tests/fixtures/www2/database_backup/test.sql"])
@@ -39,11 +38,12 @@ def test_import_local(run_sync):
 @pytest.mark.integration
 def test_import_remote(run_sync):
     """IMPORT_REMOTE: import existing dump to remote."""
-    # Setup: Extract test dump
-    backup_dir = TESTS_DIR / "fixtures" / "www1" / "database_backup"
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(TESTS_DIR / "docker" / "dump" / "test.sql.tar.gz", "r:gz") as tar:
-        tar.extractall(path=backup_dir)
+    # Setup: Extract test dump inside container (avoids permission issues)
+    exec_in_container("www1", [
+        "sh", "-c",
+        "mkdir -p /var/www/html/tests/fixtures/www1/database_backup && "
+        "tar -xzf /var/www/html/tests/docker/dump/test.sql.tar.gz -C /var/www/html/tests/fixtures/www1/database_backup"
+    ])
 
     result = run_sync("www2", f"{CONFIGS}/import_remote/import-www1-from-local.json",
                       ["-i", "/var/www/html/tests/fixtures/www1/database_backup/test.sql"])

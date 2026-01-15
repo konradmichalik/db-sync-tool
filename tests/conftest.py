@@ -1,5 +1,4 @@
 """pytest fixtures for db-sync-tool integration tests."""
-import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -56,23 +55,20 @@ def docker_up():
 def reset_test_state(docker_up):
     """Reset database and cleanup fixtures before/after each test."""
     def cleanup():
-        for www in ["www1", "www2"]:
-            base = TESTS_DIR / "fixtures" / www
-            # Remove backup directories (ignore_errors for Docker root-owned files)
-            for d in ["database_backup", "download"]:
-                path = base / d
-                if path.exists():
-                    shutil.rmtree(path, ignore_errors=True)
-            # Remove script marker fixtures
-            for f in ["before_script.txt", "after_script.txt",
-                      "before_script_global.txt", "after_script_global.txt"]:
-                path = base / f
-                if path.exists():
-                    path.unlink()
-        # Remove log file
-        log = TESTS_DIR / "fixtures" / "test.log"
-        if log.exists():
-            log.unlink()
+        # Clean up inside containers (handles root-owned files from Docker)
+        for container in ["www1", "www2"]:
+            exec_in_container(container, [
+                "sh", "-c",
+                "rm -rf /var/www/html/tests/fixtures/www1/database_backup "
+                "/var/www/html/tests/fixtures/www2/database_backup "
+                "/var/www/html/tests/fixtures/www1/download "
+                "/var/www/html/tests/fixtures/www2/download "
+                "/var/www/html/tests/fixtures/www1/before_script*.txt "
+                "/var/www/html/tests/fixtures/www1/after_script*.txt "
+                "/var/www/html/tests/fixtures/www2/before_script*.txt "
+                "/var/www/html/tests/fixtures/www2/after_script*.txt "
+                "/var/www/html/tests/fixtures/test.log 2>/dev/null || true"
+            ])
 
     # Reset databases
     for db in ["db1", "db2"]:

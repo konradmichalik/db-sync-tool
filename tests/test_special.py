@@ -1,7 +1,6 @@
 """Tests for special features (scripts, logging, shell mode, cleanup)."""
-import subprocess
 import pytest
-from conftest import get_row_count, file_exists_local, exec_in_container, TESTS_DIR, DOCKER_COMPOSE, CONFIGS
+from conftest import get_row_count, file_exists_local, exec_in_container, CONFIGS
 
 
 @pytest.mark.integration
@@ -55,11 +54,12 @@ def test_keep_dump(run_sync):
 @pytest.mark.integration
 def test_cleanup_old_backups(run_sync):
     """Clean up old backup files based on keep_dumps setting."""
-    # Setup: Create dummy backup files
-    backup_dir = TESTS_DIR / "fixtures" / "www1" / "database_backup"
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    for i in range(1, 6):
-        (backup_dir / f"{i}.sql").touch()
+    # Setup: Create dummy backup files inside container (avoids permission issues)
+    exec_in_container("www1", [
+        "bash", "-c",
+        "mkdir -p /var/www/html/tests/fixtures/www1/database_backup && "
+        "touch /var/www/html/tests/fixtures/www1/database_backup/{1,2,3,4,5}.sql"
+    ])
 
     result = run_sync("www2", f"{CONFIGS}/cleanup/dump-www1-from-local.json", ["-dn", "test"])
 
