@@ -200,17 +200,13 @@ def check_sync_mode() -> None:
 def is_remote(client: str) -> bool:
     """
     Check if given client is remote client
-    :param client: String
+    :param client: Client identifier
     :return: Boolean
     """
-    if client == Client.ORIGIN:
-        return is_origin_remote()
-    elif client == Client.TARGET:
-        return is_target_remote()
-    elif client == Client.LOCAL:
-        return False
-    else:
-        return False
+    return {
+        Client.ORIGIN: is_origin_remote,
+        Client.TARGET: is_target_remote,
+    }.get(client, lambda: False)()
 
 
 def is_target_remote() -> bool:

@@ -185,17 +185,13 @@ def dict_to_args(data: dict[str, Any]) -> list[str] | None:
     :param data: Dictionary to convert
     :return: List of arguments or None if empty
     """
-    _args = []
+    args = []
     for key, val in data.items():
-        if isinstance(val, bool):
-            if val:
-                _args.append(f'--{key}')
-        else:
-            _args.append(f'--{key}')
-            _args.append(str(val))
-    if len(_args) == 0:
-        return None
-    return _args
+        if val is True:
+            args.append(f'--{key}')
+        elif val is not False and val is not None:
+            args.extend([f'--{key}', str(val)])
+    return args or None
 
 
 def check_file_exists(client: str, path: str) -> bool:
@@ -238,27 +234,34 @@ def run_script(client: str | None = None, script: str = 'before') -> None:
         )
 
 
+def _check_tool_version(tool: str, version_flag: str = '--version') -> str | None:
+    """
+    Check if a tool is available and return its version.
+    DRY helper for version checks.
+
+    :param tool: Tool name
+    :param version_flag: Flag to get version
+    :return: Version string or None
+    """
+    raw_version = mode.run_command(
+        f'{tool} {version_flag}',
+        mode.Client.LOCAL,
+        force_output=True,
+        allow_fail=True
+    )
+    return parse_version(raw_version)
+
+
 def check_rsync_version() -> bool:
     """
     Check rsync version and availability.
 
     :return: True if rsync is available, False otherwise
     """
-    _raw_version = mode.run_command(
-        'rsync --version',
-        mode.Client.LOCAL,
-        force_output=True,
-        allow_fail=True
-    )
-    _version = parse_version(_raw_version)
-
-    if _version:
-        output.message(
-            output.Subject.LOCAL,
-            f'rsync version {_version}'
-        )
+    version = _check_tool_version('rsync')
+    if version:
+        output.message(output.Subject.LOCAL, f'rsync version {version}')
         return True
-
     return False
 
 
@@ -267,19 +270,9 @@ def check_sshpass_version() -> bool | None:
     Check sshpass version
     :return: True if available, None otherwise
     """
-    _raw_version = mode.run_command(
-        'sshpass -V',
-        mode.Client.LOCAL,
-        force_output=True,
-        allow_fail=True
-    )
-    _version = parse_version(_raw_version)
-
-    if _version:
-        output.message(
-            output.Subject.LOCAL,
-            f'sshpass version {_version}'
-        )
+    version = _check_tool_version('sshpass', '-V')
+    if version:
+        output.message(output.Subject.LOCAL, f'sshpass version {version}')
         system.config['use_sshpass'] = True
         return True
 
@@ -339,16 +332,12 @@ def confirm(prompt: str | None = None, resp: bool = False) -> bool:
         prompt = f'{prompt} [y|N]: '
 
     while True:
-        ans = input(prompt)
+        ans = input(prompt).lower()
         if not ans:
             return resp
-        if ans not in ['y', 'Y', 'n', 'N']:
-            print('Please enter y or n.')
-            continue
-        if ans == 'y' or ans == 'Y':
-            return True
-        if ans == 'n' or ans == 'N':
-            return False
+        if ans in ('y', 'n'):
+            return ans == 'y'
+        print('Please enter y or n.')
 
 
 def clean_db_config(config: dict[str, Any]) -> dict[str, Any]:
