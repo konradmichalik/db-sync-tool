@@ -12,7 +12,7 @@ from db_sync_tool.utility import system, output, helper
 from db_sync_tool.remote import system as remote_system
 
 
-def sanitize_command_for_logging(command):
+def sanitize_command_for_logging(command: str) -> str:
     """
     Remove sensitive information from commands before logging.
     This prevents credentials from appearing in verbose output or logs.
@@ -68,137 +68,73 @@ class SyncMode:
     SYNC_LOCAL = 'SYNC_LOCAL'
 
     @staticmethod
-    def is_dump_local():
-        """
-
-        :return: boolean
-        """
+    def is_dump_local() -> bool:
         return SyncMode.is_full_local() and SyncMode.is_same_host() and not SyncMode.is_sync_local()
 
     @staticmethod
-    def is_dump_remote():
-        """
-
-        :return: boolean
-        """
+    def is_dump_remote() -> bool:
         return SyncMode.is_full_remote() and SyncMode.is_same_host() and \
                not SyncMode.is_sync_remote()
 
     @staticmethod
-    def is_receiver():
-        """
-
-        :return: boolean
-        """
+    def is_receiver() -> bool:
         return 'host' in system.config[Client.ORIGIN] and not SyncMode.is_proxy() and \
                not SyncMode.is_sync_remote()
 
     @staticmethod
-    def is_sender():
-        """
-
-        :return: boolean
-        """
+    def is_sender() -> bool:
         return 'host' in system.config[Client.TARGET] and not SyncMode.is_proxy() and \
                not SyncMode.is_sync_remote()
 
     @staticmethod
-    def is_proxy():
-        """
-
-        :return: boolean
-        """
+    def is_proxy() -> bool:
         return SyncMode.is_full_remote()
 
     @staticmethod
-    def is_import_local():
-        """
-
-        :return: boolean
-        """
+    def is_import_local() -> bool:
         return system.config['import'] != '' and 'host' not in system.config[Client.TARGET]
 
     @staticmethod
-    def is_import_remote():
-        """
-
-        :return: boolean
-        """
+    def is_import_remote() -> bool:
         return system.config['import'] != '' and 'host' in system.config[Client.TARGET]
 
     @staticmethod
-    def is_sync_local():
-        """
-
-        :return: boolean
-        """
+    def is_sync_local() -> bool:
         return SyncMode.is_full_local() and SyncMode.is_same_host() and SyncMode.is_same_sync()
 
     @staticmethod
-    def is_sync_remote():
-        """
-
-        :return: boolean
-        """
+    def is_sync_remote() -> bool:
         return SyncMode.is_full_remote() and SyncMode.is_same_host() and SyncMode.is_same_sync()
 
     @staticmethod
-    def is_same_sync():
-        """
-
-        :return: boolean
-        """
+    def is_same_sync() -> bool:
         return ((SyncMode.is_available_configuration('path') and
                  not SyncMode.is_same_configuration('path')) or
                (SyncMode.is_available_configuration('db') and
                 not SyncMode.is_same_configuration('db')))
 
     @staticmethod
-    def is_full_remote():
-        """
-
-        :return: boolean
-        """
+    def is_full_remote() -> bool:
         return SyncMode.is_available_configuration('host')
 
     @staticmethod
-    def is_full_local():
-        """
-
-        :return: boolean
-        """
+    def is_full_local() -> bool:
         return SyncMode.is_unavailable_configuration('host')
 
     @staticmethod
-    def is_same_host():
-        """
-
-        :return: boolean
-        """
+    def is_same_host() -> bool:
         return SyncMode.is_same_configuration('host') and SyncMode.is_same_configuration('port') and SyncMode.is_same_configuration('user')
 
     @staticmethod
-    def is_available_configuration(key):
-        """
-
-        :return: boolean
-        """
+    def is_available_configuration(key: str) -> bool:
         return key in system.config[Client.ORIGIN] and key in system.config[Client.TARGET]
 
     @staticmethod
-    def is_unavailable_configuration(key):
-        """
-
-        :return: boolean
-        """
+    def is_unavailable_configuration(key: str) -> bool:
         return key not in system.config[Client.ORIGIN] and key not in system.config[Client.TARGET]
 
     @staticmethod
-    def is_same_configuration(key):
-        """
-
-        :return: boolean
-        """
+    def is_same_configuration(key: str) -> bool:
         return (SyncMode.is_available_configuration(key) and
                system.config[Client.ORIGIN][key] == system.config[Client.TARGET][key]) or \
                SyncMode.is_unavailable_configuration(key)
@@ -211,7 +147,7 @@ sync_mode = SyncMode.RECEIVER
 #
 # FUNCTIONS
 #
-def get_sync_mode():
+def get_sync_mode() -> str:
     """
     Returning the sync mode
     :return: String sync_mode
@@ -219,10 +155,9 @@ def get_sync_mode():
     return sync_mode
 
 
-def check_sync_mode():
+def check_sync_mode() -> None:
     """
     Checking the sync_mode based on the given configuration
-    :return: String subject
     """
     global sync_mode
     _description = ''
@@ -262,23 +197,19 @@ def check_sync_mode():
     check_for_protection()
 
 
-def is_remote(client):
+def is_remote(client: str) -> bool:
     """
     Check if given client is remote client
-    :param client: String
+    :param client: Client identifier
     :return: Boolean
     """
-    if client == Client.ORIGIN:
-        return is_origin_remote()
-    elif client == Client.TARGET:
-        return is_target_remote()
-    elif client == Client.LOCAL:
-        return False
-    else:
-        return False
+    return {
+        Client.ORIGIN: is_origin_remote,
+        Client.TARGET: is_target_remote,
+    }.get(client, lambda: False)()
 
 
-def is_target_remote():
+def is_target_remote() -> bool:
     """
     Check if target is remote client
     :return: Boolean
@@ -287,7 +218,7 @@ def is_target_remote():
                          SyncMode.IMPORT_REMOTE, SyncMode.SYNC_REMOTE)
 
 
-def is_origin_remote():
+def is_origin_remote() -> bool:
     """
     Check if origin is remote client
     :return: Boolean
@@ -296,7 +227,7 @@ def is_origin_remote():
                          SyncMode.IMPORT_REMOTE, SyncMode.SYNC_REMOTE)
 
 
-def is_import():
+def is_import() -> bool:
     """
     Check if sync mode is import
     :return: Boolean
@@ -304,15 +235,16 @@ def is_import():
     return sync_mode in (SyncMode.IMPORT_LOCAL, SyncMode.IMPORT_REMOTE)
 
 
-def is_dump():
+def is_dump() -> bool:
     """
-    Check if sync mode is import
+    Check if sync mode is dump
     :return: Boolean
     """
     return sync_mode in (SyncMode.DUMP_LOCAL, SyncMode.DUMP_REMOTE)
 
 
-def run_command(command, client, force_output=False, allow_fail=False, skip_dry_run=False):
+def run_command(command: str, client: str, force_output: bool = False,
+                allow_fail: bool = False, skip_dry_run: bool = False) -> str | None:
     """
     Run command depending on the given client
     :param command: String
@@ -320,7 +252,7 @@ def run_command(command, client, force_output=False, allow_fail=False, skip_dry_
     :param force_output: Boolean
     :param allow_fail: Boolean
     :param skip_dry_run: Boolean
-    :return:
+    :return: Command output or None
     """
     if system.config['verbose']:
         # Sanitize command to prevent credentials from appearing in logs
@@ -352,10 +284,9 @@ def run_command(command, client, force_output=False, allow_fail=False, skip_dry_
             return out.decode().strip()
 
 
-def check_for_protection():
+def check_for_protection() -> None:
     """
-    Check if the target system is protected
-    :return: Boolean
+    Check if the target system is protected and exit if so.
     """
     if sync_mode in (SyncMode.RECEIVER, SyncMode.SENDER, SyncMode.PROXY, SyncMode.SYNC_LOCAL,
                      SyncMode.SYNC_REMOTE, SyncMode.IMPORT_LOCAL, SyncMode.IMPORT_REMOTE) and \
