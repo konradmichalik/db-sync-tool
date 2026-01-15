@@ -8,6 +8,7 @@ import os
 import paramiko
 from db_sync_tool.utility import mode, system, helper, output
 from db_sync_tool.database import utility as database_utility
+from db_sync_tool.remote import client as remote_client
 
 
 def remove_origin_database_dump(keep_compressed_file=False):
