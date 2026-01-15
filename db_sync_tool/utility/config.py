@@ -117,7 +117,7 @@ class ClientConfig:
             db=DatabaseConfig.from_dict(data.get('db')),
             jump_host=JumpHostConfig.from_dict(data.get('jump_host')),
             after_dump=data.get('after_dump'),
-            post_sql=data.get('post_sql', []),
+            post_sql=data.get('post_sql') or [],
         )
 
     @property
@@ -199,8 +199,8 @@ class SyncConfig:
             tables=data.get('tables', ''),
             where=data.get('where', ''),
             additional_mysqldump_options=data.get('additional_mysqldump_options', ''),
-            ignore_tables=data.get('ignore_tables', data.get('ignore_table', [])),
-            truncate_tables=data.get('truncate_tables', data.get('truncate_table', [])),
+            ignore_tables=data.get('ignore_tables') or data.get('ignore_table') or [],
+            truncate_tables=data.get('truncate_tables') or data.get('truncate_table') or [],
             use_rsync=data.get('use_rsync', True),
             use_rsync_options=data.get('use_rsync_options'),
             use_sshpass=data.get('use_sshpass', False),
