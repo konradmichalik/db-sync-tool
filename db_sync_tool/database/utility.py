@@ -154,8 +154,11 @@ def run_database_command(client, command, force_database_name=False):
     if force_database_name:
         _database_name = ' ' + helper.quote_shell_arg(system.config[client]['db']['name'])
 
-    # Escape the SQL command for shell (double quotes inside need escaping)
-    _safe_command = command.replace('\\', '\\\\').replace('"', '\\"')
+    # Escape the SQL command for shell
+    # - Backslashes need doubling
+    # - Double quotes need escaping
+    # - Backticks need escaping (shell command substitution)
+    _safe_command = command.replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`')
 
     return mode.run_command(
         helper.get_command(client, 'mysql') + ' ' + generate_mysql_credentials(
