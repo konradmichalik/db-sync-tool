@@ -23,6 +23,28 @@ class DatabaseSystem:
     MARIADB = 'MariaDB'
 
 
+def sanitize_table_name(table):
+    """
+    Validate and sanitize a table name to prevent SQL injection.
+    MySQL table names can contain alphanumeric chars, underscores, and dollar signs.
+    They can also contain hyphens and dots in quoted identifiers.
+
+    :param table: String table name
+    :return: String sanitized and backtick-quoted table name
+    :raises ValueError: If table name contains invalid characters
+    """
+    if not table:
+        raise ValueError("Table name cannot be empty")
+
+    # Allow alphanumeric, underscore, hyphen, dot, dollar sign
+    # These are valid MySQL identifier characters
+    if not re.match(r'^[a-zA-Z0-9_$.-]+$', table):
+        raise ValueError(f"Invalid table name: {table}")
+
+    # Return backtick-quoted identifier (safe for MySQL)
+    return f"`{table}`"
+
+
 def create_mysql_config_file(client):
     """
     Create a secure temporary MySQL config file with credentials.
@@ -156,7 +178,7 @@ def generate_database_dump_filename():
 
 def truncate_tables():
     """
-    Generate the ignore tables options for the mysqldump command by the given table list
+    Truncate specified tables before import
     # ToDo: Too much conditional nesting
     :return: String
     """
@@ -176,13 +198,15 @@ def truncate_tables():
                                                             _table.replace('*', '%'))
                 if _wildcard_tables:
                     for _wildcard_table in _wildcard_tables:
-                        _sql_command = f'TRUNCATE TABLE {_wildcard_table}'
+                        _safe_table = sanitize_table_name(_wildcard_table)
+                        _sql_command = f'TRUNCATE TABLE {_safe_table}'
                         run_database_command(mode.Client.TARGET, _sql_command, True)
             else:
                 # Check if table exists before truncating (MariaDB doesn't support IF EXISTS)
                 _existing_tables = get_database_tables_like(mode.Client.TARGET, _table)
                 if _existing_tables:
-                    _sql_command = f'TRUNCATE TABLE {_table}'
+                    _safe_table = sanitize_table_name(_table)
+                    _sql_command = f'TRUNCATE TABLE {_safe_table}'
                     run_database_command(mode.Client.TARGET, _sql_command, True)
 
 
@@ -214,11 +238,16 @@ def generate_ignore_database_tables():
 
 def generate_ignore_database_table(ignore_tables, table):
     """
-    :param ignore_tables: Dictionary
+    :param ignore_tables: List
     :param table: String
-    :return: Dictionary
+    :return: List
     """
-    ignore_tables.append('--ignore-table=' + system.config['origin']['db']['name'] + '.' + table)
+    # Validate table name to prevent injection
+    _safe_table = sanitize_table_name(table)
+    # Remove backticks for mysqldump --ignore-table option (it doesn't use them)
+    _table_name = _safe_table.strip('`')
+    _db_name = system.config['origin']['db']['name']
+    ignore_tables.append(f'--ignore-table={_db_name}.{_table_name}')
     return ignore_tables
 
 
@@ -226,14 +255,16 @@ def get_database_tables_like(client, name):
     """
     Get database table names like the given name
     :param client: String
-    :param name: String
-    :return: Dictionary
+    :param name: String pattern (may contain % wildcard)
+    :return: List of table names or None
     """
     _dbname = system.config[client]['db']['name']
-    _tables = run_database_command(client, f'SHOW TABLES FROM \`{_dbname}\` LIKE \'{name}\';').strip()
+    # Escape single quotes in the pattern to prevent SQL injection
+    _safe_pattern = name.replace("'", "''")
+    _tables = run_database_command(client, f'SHOW TABLES FROM `{_dbname}` LIKE \'{_safe_pattern}\';').strip()
     if _tables != '':
         return _tables.split('\n')[1:]
-    return
+    return None
 
 
 def get_database_tables():
@@ -247,7 +278,10 @@ def get_database_tables():
     _result = ' '
     _tables = system.config['tables'].split(',')
     for _table in _tables:
-        _result += '\'' + _table + '\' '
+        # Validate table name to prevent injection
+        _safe_table = sanitize_table_name(_table.strip())
+        # Use backtick-quoted name for shell command
+        _result += _safe_table + ' '
     return _result
 
 
