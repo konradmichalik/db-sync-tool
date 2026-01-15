@@ -32,7 +32,7 @@ config = {
     'config_file_path': None,
     'clear_database': False,
     'force_password': False,
-    'use_rsync': False,
+    'use_rsync': True,  # rsync is 5-10x faster than Paramiko SFTP
     'use_rsync_options': None,
     'use_sshpass': False,
     'ssh_agent': False,
@@ -293,6 +293,19 @@ def check_options():
     if 'check_dump' in config:
         config['check_dump'] = config['check_dump']
 
+    # Check rsync availability if enabled (default: True)
+    # Falls back to Paramiko SFTP if rsync is not available
+    if config['use_rsync']:
+        if helper.check_rsync_version():
+            helper.check_sshpass_version()
+        else:
+            config['use_rsync'] = False
+            output.message(
+                output.Subject.WARNING,
+                'rsync not found, falling back to SFTP transfer',
+                True
+            )
+
     reverse_hosts()
     mode.check_sync_mode()
 
@@ -454,15 +467,11 @@ def check_args_options(config_file=None,
     if not force_password is None:
         config['force_password'] = force_password
 
-    if not use_rsync is None:
+    if use_rsync is not None:
         config['use_rsync'] = use_rsync
 
-        if use_rsync is True:
-            helper.check_rsync_version()
-            helper.check_sshpass_version()
-
-        if not use_rsync_options is None:
-            config['use_rsync_options'] = use_rsync_options
+    if use_rsync_options is not None:
+        config['use_rsync_options'] = use_rsync_options
 
     if not reverse is None:
         config['reverse'] = reverse

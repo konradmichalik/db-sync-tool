@@ -54,7 +54,7 @@ def remove_temporary_data_dir():
 
 def clean_up_dump_dir(client, path, num=5):
     """
-    Clean up the dump directory from old dump files (only affect .sql and .tar.gz files)
+    Clean up the dump directory from old dump files (only affect .sql and .gz files)
     :param client:
     :param path:
     :param num:
@@ -65,11 +65,11 @@ def clean_up_dump_dir(client, path, num=5):
         _command = get_command(client, 'stat') + ' -f "%Sm %N" ' + path + ' | ' + get_command(
             client,
             'sort') + ' -rn | ' + get_command(
-            client, 'grep') + ' -E ".tar.gz|.sql"'
+            client, 'grep') + ' -E "\\.gz$|\\.sql$"'
     else:
         _command = get_command(client, 'stat') + ' -c "%y %n" ' + path + ' | ' + \
                    get_command(client,'sort') + ' -rn | ' + get_command(client, 'grep') + \
-                   ' -E ".tar.gz|.sql"'
+                   ' -E "\\.gz$|\\.sql$"'
 
     # List files in directory sorted by change date
     _files = mode.run_command(
@@ -244,19 +244,26 @@ def run_script(client=None, script='before'):
 
 def check_rsync_version():
     """
-    Check rsync version
-    :return:
+    Check rsync version and availability.
+
+    :return: True if rsync is available, False otherwise
     """
     _raw_version = mode.run_command(
         'rsync --version',
         mode.Client.LOCAL,
-        True
+        force_output=True,
+        allow_fail=True
     )
     _version = parse_version(_raw_version)
-    output.message(
-        output.Subject.LOCAL,
-        f'rsync version {_version}'
-    )
+
+    if _version:
+        output.message(
+            output.Subject.LOCAL,
+            f'rsync version {_version}'
+        )
+        return True
+
+    return False
 
 
 def check_sshpass_version():
