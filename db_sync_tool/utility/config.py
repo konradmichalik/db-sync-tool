@@ -22,6 +22,16 @@ Usage:
 from dataclasses import dataclass, field
 
 
+def _safe_int(value, default: int) -> int:
+    """Safely convert value to int, returning default if None or invalid."""
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 @dataclass
 class DatabaseConfig:
     """Database connection configuration."""
@@ -41,7 +51,7 @@ class DatabaseConfig:
             host=data.get('host', 'localhost'),
             user=data.get('user', ''),
             password=data.get('password', ''),
-            port=int(data.get('port', 3306)),
+            port=_safe_int(data.get('port'), 3306),
         )
 
 
@@ -66,7 +76,7 @@ class JumpHostConfig:
             user=data.get('user', ''),
             password=data.get('password'),
             ssh_key=data.get('ssh_key'),
-            port=int(data.get('port', 22)),
+            port=_safe_int(data.get('port'), 22),
             private=data.get('private'),
             name=data.get('name'),
         )
@@ -101,7 +111,7 @@ class ClientConfig:
             user=data.get('user', ''),
             password=data.get('password'),
             ssh_key=data.get('ssh_key'),
-            port=int(data.get('port', 22)),
+            port=_safe_int(data.get('port'), 22),
             dump_dir=data.get('dump_dir', '/tmp/'),
             keep_dumps=data.get('keep_dumps'),
             db=DatabaseConfig.from_dict(data.get('db')),
