@@ -27,20 +27,18 @@ def remove_origin_database_dump(keep_compressed_file=False):
         return
 
     _file_path = helper.get_dump_dir(mode.Client.ORIGIN) + database_utility.database_dump_file_name
-    if mode.is_origin_remote():
-        mode.run_command(
-            helper.get_command(mode.Client.ORIGIN, 'rm') + ' ' + _file_path,
-            mode.Client.ORIGIN
-        )
-        if not keep_compressed_file:
+    _gz_path = _file_path + '.gz'
+
+    # With streaming compression, only .gz file exists on origin (no separate .sql)
+    if not keep_compressed_file:
+        if mode.is_origin_remote():
             mode.run_command(
-                helper.get_command(mode.Client.ORIGIN, 'rm') + ' ' + _file_path + '.tar.gz',
+                helper.get_command(mode.Client.ORIGIN, 'rm') + ' ' + _gz_path,
                 mode.Client.ORIGIN
             )
-    else:
-        os.remove(_file_path)
-        if not keep_compressed_file:
-            os.remove(f'{_file_path}.tar.gz')
+        else:
+            if os.path.isfile(_gz_path):
+                os.remove(_gz_path)
 
     if keep_compressed_file:
         if 'keep_dumps' in system.config[mode.Client.ORIGIN]:
@@ -50,7 +48,7 @@ def remove_origin_database_dump(keep_compressed_file=False):
 
         output.message(
             output.Subject.INFO,
-            f'Database dump file is saved to: {_file_path}.tar.gz',
+            f'Database dump file is saved to: {_gz_path}',
             True,
             True
         )
@@ -94,20 +92,18 @@ def remove_target_database_dump():
         if system.config['dry_run']:
             return
 
+        _gz_path = _file_path + '.gz'
         if mode.is_target_remote():
+            # Remove both decompressed .sql and compressed .gz
             mode.run_command(
-                helper.get_command(mode.Client.TARGET, 'rm') + ' ' + _file_path,
-                mode.Client.TARGET
-            )
-            mode.run_command(
-                helper.get_command(mode.Client.TARGET, 'rm') + ' ' + _file_path + '.tar.gz',
+                helper.get_command(mode.Client.TARGET, 'rm') + ' -f ' + _file_path + ' ' + _gz_path,
                 mode.Client.TARGET
             )
         else:
             if os.path.isfile(_file_path):
                 os.remove(_file_path)
-            if os.path.isfile(f'{_file_path}.tar.gz'):
-                os.remove(f'{_file_path}.tar.gz')
+            if os.path.isfile(_gz_path):
+                os.remove(_gz_path)
 
 
 def check_keys_from_ssh_agent():

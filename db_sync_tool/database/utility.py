@@ -351,13 +351,20 @@ def _generate_mysql_credentials_legacy(client, force_password=True):
 def check_database_dump(client, filepath):
     """
     Checking the last line of the dump file if it contains "-- Dump completed on"
+    Supports both plain .sql and compressed .gz files
     :param client: String
     :param filepath: String
     :return:
     """
     if system.config['check_dump']:
+        # Use gunzip -c for .gz files, tail for plain files
+        if filepath.endswith('.gz'):
+            _cmd = helper.get_command(client, 'gunzip') + ' -c ' + filepath + ' | tail -n 1'
+        else:
+            _cmd = helper.get_command(client, 'tail') + ' -n 1 ' + filepath
+
         _line = mode.run_command(
-            helper.get_command(client, 'tail') + ' -n 1 ' + filepath,
+            _cmd,
             client,
             True,
             skip_dry_run=True
@@ -385,13 +392,21 @@ def check_database_dump(client, filepath):
 def count_tables(client, filepath):
     """
     Count the reference string in the database dump file to get the count of all exported tables
+    Supports both plain .sql and compressed .gz files
     :param client: String
     :param filepath: String
     :return:
     """
     _reference = 'CREATE TABLE'
+
+    # Use zcat/gunzip for .gz files
+    if filepath.endswith('.gz'):
+        _cmd = f'{helper.get_command(client, "gunzip")} -c {filepath} | grep -ao "{_reference}" | wc -l | xargs'
+    else:
+        _cmd = f'{helper.get_command(client, "grep")} -ao "{_reference}" {filepath} | wc -l | xargs'
+
     _count = mode.run_command(
-        f'{helper.get_command(client, "grep")} -ao "{_reference}" {filepath} | wc -l | xargs',
+        _cmd,
         client,
         True,
         skip_dry_run=True

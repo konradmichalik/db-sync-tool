@@ -54,7 +54,7 @@ def remove_temporary_data_dir():
 
 def clean_up_dump_dir(client, path, num=5):
     """
-    Clean up the dump directory from old dump files (only affect .sql and .tar.gz files)
+    Clean up the dump directory from old dump files (only affect .sql and .gz files)
     :param client:
     :param path:
     :param num:
@@ -65,11 +65,11 @@ def clean_up_dump_dir(client, path, num=5):
         _command = get_command(client, 'stat') + ' -f "%Sm %N" ' + path + ' | ' + get_command(
             client,
             'sort') + ' -rn | ' + get_command(
-            client, 'grep') + ' -E ".tar.gz|.sql"'
+            client, 'grep') + ' -E "\\.gz$|\\.sql$"'
     else:
         _command = get_command(client, 'stat') + ' -c "%y %n" ' + path + ' | ' + \
                    get_command(client,'sort') + ' -rn | ' + get_command(client, 'grep') + \
-                   ' -E ".tar.gz|.sql"'
+                   ' -E "\\.gz$|\\.sql$"'
 
     # List files in directory sorted by change date
     _files = mode.run_command(
