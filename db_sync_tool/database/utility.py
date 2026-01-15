@@ -399,9 +399,10 @@ def get_dump_cat_command(client, filepath):
     :param filepath: String path to dump file
     :return: String command prefix for reading the file
     """
+    _safe_filepath = helper.quote_shell_arg(filepath)
     if filepath.endswith('.gz'):
-        return f'{helper.get_command(client, "gunzip")} -c {filepath}'
-    return f'{helper.get_command(client, "cat")} {filepath}'
+        return f'{helper.get_command(client, "gunzip")} -c {_safe_filepath}'
+    return f'{helper.get_command(client, "cat")} {_safe_filepath}'
 
 
 def check_database_dump(client, filepath):
