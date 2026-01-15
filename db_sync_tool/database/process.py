@@ -54,12 +54,21 @@ def create_origin_database_dump():
         # Note: --defaults-file MUST be the first option for MySQL/MariaDB
         _db_name = quote_shell_arg(system.config[mode.Client.ORIGIN]['db']['name'])
         _safe_dump_path = quote_shell_arg(_dump_file_path)
+
+        # Get table names and shell-quote them safely (strip backticks first)
+        _raw_tables = database_utility.get_database_tables()
+        _safe_tables = ''
+        if _raw_tables.strip():
+            # Split on backtick-quoted names, strip backticks, shell-quote each
+            _table_names = [t.strip('`') for t in _raw_tables.split() if t.strip('`')]
+            _safe_tables = ' ' + ' '.join(quote_shell_arg(t) for t in _table_names)
+
         mode.run_command(
             helper.get_command(mode.Client.ORIGIN, 'mysqldump') + ' ' +
             database_utility.generate_mysql_credentials(mode.Client.ORIGIN) + ' ' +
             _mysqldump_options + _db_name + ' ' +
             database_utility.generate_ignore_database_tables() +
-            database_utility.get_database_tables() +
+            _safe_tables +
             ' > ' + _safe_dump_path,
             mode.Client.ORIGIN,
             skip_dry_run=True
