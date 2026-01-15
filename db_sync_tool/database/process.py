@@ -220,27 +220,30 @@ def prepare_target_database_dump():
 
 def clear_database(client):
     """
-    Clearing the database by dropping all tables
-    https://www.techawaken.com/drop-tables-mysql-database/
-
-    { mysql --defaults-file=... -Nse 'show tables' DB_NAME; } |
-    ( while read table; do if [ -z ${i+x} ]; then echo 'SET FOREIGN_KEY_CHECKS = 0;'; fi; i=1;
-    echo "drop table \`$table\`;"; done;
-    echo 'SET FOREIGN_KEY_CHECKS = 1;' ) |
-    awk '{print}' ORS=' ' | mysql --defaults-file=... DB_NAME;
+    Clearing the database by dropping all tables using pure SQL
+    (eliminates shell pipeline overhead)
 
     :param client: String
     :return:
     """
-    _db_name = quote_shell_arg(system.config[client]['db']['name'])
-    mode.run_command(
-        '{ ' + helper.get_command(client, 'mysql') + ' ' +
-        database_utility.generate_mysql_credentials(client) +
-        ' -Nse \'show tables\' ' + _db_name + '; }' +
-        ' | ( while read table; do if [ -z ${i+x} ]; then echo \'SET FOREIGN_KEY_CHECKS = 0;\'; fi; i=1; ' +
-        'echo "drop table \\`$table\\`;"; done; echo \'SET FOREIGN_KEY_CHECKS = 1;\' ) | awk \'{print}\' ORS=\' \' | ' +
-        helper.get_command(client, 'mysql') + ' ' +
-        database_utility.generate_mysql_credentials(client) + ' ' + _db_name,
-        client,
-        skip_dry_run=True
-    )
+    # Get all tables via SQL query
+    _tables_result = database_utility.run_database_command(client, 'SHOW TABLES;')
+    if not _tables_result or not _tables_result.strip():
+        return
+
+    # Parse table names from result (skip header line)
+    _lines = _tables_result.strip().split('\n')
+    _tables = [line.strip() for line in _lines[1:] if line.strip()]
+
+    if not _tables:
+        return
+
+    # Build DROP statements
+    drop_statements = []
+    for table in _tables:
+        _safe_table = database_utility.sanitize_table_name(table)
+        drop_statements.append(f'DROP TABLE {_safe_table}')
+
+    # Execute all drops in one roundtrip with FK checks disabled
+    _sql_command = 'SET FOREIGN_KEY_CHECKS = 0; ' + '; '.join(drop_statements) + '; SET FOREIGN_KEY_CHECKS = 1;'
+    database_utility.run_database_command(client, _sql_command, True)
