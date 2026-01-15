@@ -336,9 +336,9 @@ def confirm(prompt=None, resp=False):
         prompt = 'Confirm'
 
     if resp:
-        prompt = '%s [%s|%s]: ' % (prompt, 'Y', 'n')
+        prompt = f'{prompt} [Y|n]: '
     else:
-        prompt = '%s [%s|%s]: ' % (prompt, 'y', 'N')
+        prompt = f'{prompt} [y|N]: '
 
     while True:
         ans = input(prompt)
