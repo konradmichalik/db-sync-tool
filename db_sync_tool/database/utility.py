@@ -10,6 +10,7 @@ import re
 import tempfile
 import os
 import secrets
+import base64
 from db_sync_tool.utility import mode, system, helper, output
 
 database_dump_file_name = None
@@ -76,7 +77,6 @@ def create_mysql_config_file(client):
     if mode.is_remote(client):
         # For remote clients, create config file on remote system
         # Using base64 encoding to safely handle special characters in passwords
-        import base64
         encoded_content = base64.b64encode(config_content.encode()).decode()
         # Use force_output=True to ensure command completes before proceeding
         result = mode.run_command(

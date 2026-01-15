@@ -30,12 +30,8 @@ def clean_up():
     Clean up temporary files and resources
     :return:
     """
-    # Import here to avoid circular imports
-    from db_sync_tool.database import utility as database_utility
-
-    # Clean up MySQL config files (security: remove credential files)
-    database_utility.cleanup_mysql_config_files()
-
+    # Note: MySQL config files are cleaned up in sync.py's finally block
+    # to ensure cleanup even on errors
     if not mode.is_import():
         remote_utility.remove_target_database_dump()
         if mode.get_sync_mode() == mode.SyncMode.PROXY:
