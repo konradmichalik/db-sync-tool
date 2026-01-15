@@ -28,7 +28,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-timeout pytest-cov
+          pip install pytest pytest-timeout
 
       - name: Build Docker images
         working-directory: tests/docker
@@ -41,17 +41,9 @@ jobs:
       - name: Wait for MariaDB initialization
         run: sleep 10
 
-      - name: Run integration tests with coverage
+      - name: Run integration tests
         working-directory: tests
-        run: pytest -v --timeout=120 --cov=db_sync_tool --cov-report=term-missing --cov-report=xml
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          file: tests/coverage.xml
-          flags: python${{ matrix.python-version }}
-          fail_ci_if_error: false
+        run: pytest -v --timeout=120
 
       - name: Show container logs on failure
         if: failure()
