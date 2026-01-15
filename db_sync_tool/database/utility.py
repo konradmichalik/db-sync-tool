@@ -253,7 +253,9 @@ def generate_ignore_database_table(ignore_tables, table):
     _safe_table = sanitize_table_name(table)
     # Remove backticks for mysqldump --ignore-table option (it doesn't use them)
     _table_name = _safe_table.strip('`')
-    _db_name = system.config['origin']['db']['name']
+    # Validate database name (same rules as table names)
+    _safe_db = sanitize_table_name(system.config['origin']['db']['name'])
+    _db_name = _safe_db.strip('`')
     ignore_tables.append(f'--ignore-table={_db_name}.{_table_name}')
     return ignore_tables
 
