@@ -125,11 +125,16 @@ def run_database_command(client, command, force_database_name=False):
     :param force_database_name: Bool forces the database name
     :return:
     """
-    _database_name = ' ' + system.config[client]['db']['name'] if force_database_name else ''
+    _database_name = ''
+    if force_database_name:
+        _database_name = ' ' + helper.quote_shell_arg(system.config[client]['db']['name'])
+
+    # Escape the SQL command for shell (double quotes inside need escaping)
+    _safe_command = command.replace('\\', '\\\\').replace('"', '\\"')
 
     return mode.run_command(
         helper.get_command(client, 'mysql') + ' ' + generate_mysql_credentials(
-            client) + _database_name + ' -e "' + command + '"',
+            client) + _database_name + ' -e "' + _safe_command + '"',
         client, True)
 
 
