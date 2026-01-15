@@ -8,6 +8,7 @@ import shutil
 import os
 import re
 import shlex
+from pathlib import Path
 from db_sync_tool.utility import mode, system, output
 from db_sync_tool.remote import utility as remote_utility
 
@@ -310,7 +311,7 @@ def get_file_from_path(path):
     :param path:
     :return: file
     """
-    return path.split('/')[-1]
+    return Path(path).name
 
 
 def confirm(prompt=None, resp=False):

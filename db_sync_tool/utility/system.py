@@ -9,6 +9,7 @@ import json
 import os
 import getpass
 import secrets
+from pathlib import Path
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
 from db_sync_tool.remote import utility as remote_utility
@@ -504,8 +505,8 @@ def link_configuration_with_hosts():
     if config['link_hosts'] != '':
 
         # Adjust filepath from relative to absolute
-        if config['link_hosts'][0] != '/':
-            config['link_hosts'] = os.path.dirname(os.path.abspath(config['config_file_path'])) + '/' + config['link_hosts']
+        if not config['link_hosts'].startswith('/'):
+            config['link_hosts'] = str(Path(config['config_file_path']).resolve().parent / config['link_hosts'])
 
         if os.path.isfile(config['link_hosts']):
             with open(config['link_hosts'], 'r') as read_file:
