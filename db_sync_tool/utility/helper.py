@@ -173,8 +173,13 @@ def create_local_temporary_data_dir():
     Create local temporary data dir with secure permissions
     :return:
     """
-    # Use secure temp dir creation with 0700 permissions
-    system.create_secure_temp_dir(system.default_local_sync_path)
+    # Skip secure permissions for user-specified keep_dump directories
+    if system.config['keep_dump']:
+        if not os.path.exists(system.default_local_sync_path):
+            os.makedirs(system.default_local_sync_path)
+    else:
+        # Use secure temp dir creation with 0700 permissions
+        system.create_secure_temp_dir(system.default_local_sync_path)
 
 
 def dict_to_args(dict):
