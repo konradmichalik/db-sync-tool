@@ -1,38 +1,177 @@
 #!/usr/bin/env python3
 
 """
-Client script
+SSH client management for remote connections.
+
+Provides both legacy global access and modern context manager patterns:
+
+Legacy (backwards compatible):
+    from db_sync_tool.remote import client
+    client.load_ssh_client_origin()
+    # use client.ssh_client_origin
+    client.close_ssh_clients()
+
+Modern (recommended):
+    from db_sync_tool.remote.client import SSHClientManager
+    with SSHClientManager() as mgr:
+        mgr.load_origin()
+        # use mgr.origin
 """
 
 import sys
 import paramiko
 from db_sync_tool.utility import mode, system, helper, output
 
-ssh_client_origin = None
-ssh_client_target = None
-additional_ssh_clients = []
-
 default_timeout = 600
+
+
+class SSHClientManager:
+    """
+    Manages SSH client connections with automatic cleanup.
+
+    Can be used as a context manager for guaranteed resource cleanup,
+    or instantiated directly for more control.
+    """
+
+    _instance: 'SSHClientManager | None' = None
+
+    def __init__(self):
+        self._origin: paramiko.SSHClient | None = None
+        self._target: paramiko.SSHClient | None = None
+        self._additional: list[paramiko.SSHClient] = []
+
+    @classmethod
+    def get_instance(cls) -> 'SSHClientManager':
+        """Get or create the singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    @property
+    def origin(self) -> paramiko.SSHClient | None:
+        """Get origin SSH client."""
+        return self._origin
+
+    @property
+    def target(self) -> paramiko.SSHClient | None:
+        """Get target SSH client."""
+        return self._target
+
+    def _update_legacy_globals(self) -> None:
+        """Sync internal state to legacy global variables."""
+        global ssh_client_origin, ssh_client_target, additional_ssh_clients
+        ssh_client_origin = self._origin
+        ssh_client_target = self._target
+        additional_ssh_clients = list(self._additional)
+
+    def load_origin(self) -> paramiko.SSHClient:
+        """Load and return the origin SSH client."""
+        self._origin = load_ssh_client(mode.Client.ORIGIN)
+        self._update_legacy_globals()
+        helper.run_script(mode.Client.ORIGIN, 'before')
+        return self._origin
+
+    def load_target(self) -> paramiko.SSHClient:
+        """Load and return the target SSH client."""
+        self._target = load_ssh_client(mode.Client.TARGET)
+        self._update_legacy_globals()
+        helper.run_script(mode.Client.TARGET, 'before')
+        return self._target
+
+    def add_additional(self, client: paramiko.SSHClient) -> None:
+        """Register an additional SSH client for cleanup."""
+        self._additional.append(client)
+        self._update_legacy_globals()
+
+    def close_all(self) -> None:
+        """
+        Close all managed SSH connections.
+
+        Uses exception handling to ensure all cleanup steps complete,
+        even if individual steps fail. This is important since close_all()
+        is called from __exit__.
+        """
+        errors = []
+
+        # Origin cleanup
+        try:
+            helper.run_script(mode.Client.ORIGIN, 'after')
+        except Exception as e:
+            errors.append(f"origin after-script: {e}")
+        try:
+            if self._origin is not None:
+                self._origin.close()
+        except Exception as e:
+            errors.append(f"origin close: {e}")
+        finally:
+            self._origin = None
+
+        # Target cleanup
+        try:
+            helper.run_script(mode.Client.TARGET, 'after')
+        except Exception as e:
+            errors.append(f"target after-script: {e}")
+        try:
+            if self._target is not None:
+                self._target.close()
+        except Exception as e:
+            errors.append(f"target close: {e}")
+        finally:
+            self._target = None
+
+        # Additional clients cleanup
+        for i, client in enumerate(self._additional):
+            try:
+                client.close()
+            except Exception as e:
+                errors.append(f"additional client {i}: {e}")
+        self._additional.clear()
+
+        # Global after-script
+        try:
+            helper.run_script(script='after')
+        except Exception as e:
+            errors.append(f"global after-script: {e}")
+
+        # Always sync globals
+        self._update_legacy_globals()
+
+        # Log errors if any occurred (but don't raise - cleanup should be silent)
+        if errors:
+            for err in errors:
+                output.message(output.Subject.WARNING, f"Cleanup error: {err}", verbose_only=True)
+
+    def __enter__(self) -> 'SSHClientManager':
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Context manager exit - ensures cleanup even on errors."""
+        self.close_all()
+
+
+# Legacy global variables for backwards compatibility
+ssh_client_origin: paramiko.SSHClient | None = None
+ssh_client_target: paramiko.SSHClient | None = None
+additional_ssh_clients: list[paramiko.SSHClient] = []
 
 
 def load_ssh_client_origin():
     """
-    Loading the origin ssh client
-    :return:
+    Loading the origin ssh client (legacy function).
+
+    Prefer using SSHClientManager for new code.
     """
-    global ssh_client_origin
-    ssh_client_origin = load_ssh_client(mode.Client.ORIGIN)
-    helper.run_script(mode.Client.ORIGIN, 'before')
+    SSHClientManager.get_instance().load_origin()
 
 
 def load_ssh_client_target():
     """
-    Loading the target ssh client
-    :return:
+    Loading the target ssh client (legacy function).
+
+    Prefer using SSHClientManager for new code.
     """
-    global ssh_client_target
-    ssh_client_target = load_ssh_client(mode.Client.TARGET)
-    helper.run_script(mode.Client.TARGET, 'before')
+    SSHClientManager.get_instance().load_target()
 
 
 def load_ssh_client(ssh):
@@ -110,21 +249,11 @@ def load_ssh_client(ssh):
 
 def close_ssh_clients():
     """
-    Closing ssh client sessions
-    :return:
+    Closing ssh client sessions (legacy function).
+
+    Prefer using SSHClientManager as context manager for new code.
     """
-    helper.run_script(mode.Client.ORIGIN, 'after')
-    if not ssh_client_origin is None:
-        ssh_client_origin.close()
-
-    helper.run_script(mode.Client.TARGET, 'after')
-    if not ssh_client_target is None:
-        ssh_client_target.close()
-
-    for additional_ssh_client in additional_ssh_clients:
-        additional_ssh_client.close()
-
-    helper.run_script(script='after')
+    SSHClientManager.get_instance().close_all()
 
 
 def get_jump_host_channel(client):
@@ -169,8 +298,8 @@ def get_jump_host_channel(client):
             timeout=default_timeout
         )
 
-        global additional_ssh_clients
-        additional_ssh_clients.append(_jump_host_client)
+        # Register for cleanup via manager (also updates legacy global)
+        SSHClientManager.get_instance().add_additional(_jump_host_client)
 
         # open the necessary channel
         _jump_host_transport = _jump_host_client.get_transport()
