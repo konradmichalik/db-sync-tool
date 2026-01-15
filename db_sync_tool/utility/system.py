@@ -8,6 +8,8 @@ import sys
 import json
 import os
 import getpass
+import secrets
+import tempfile
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
 from db_sync_tool.remote import utility as remote_utility
@@ -50,7 +52,25 @@ config = {
 # DEFAULTS
 #
 
-default_local_sync_path = '/tmp/db_sync_tool/'
+# Generate a secure random suffix to prevent predictable temp paths
+_temp_suffix = secrets.token_hex(8)
+default_local_sync_path = f'/tmp/db_sync_tool_{_temp_suffix}/'
+
+
+def create_secure_temp_dir(path):
+    """
+    Create a temporary directory with secure permissions (0700).
+    Prevents other users from accessing sensitive database dumps.
+
+    :param path: String path to create
+    :return: String path
+    """
+    if not os.path.exists(path):
+        os.makedirs(path, mode=0o700)
+    else:
+        # Ensure secure permissions even if directory exists
+        os.chmod(path, 0o700)
+    return path
 
 
 #

@@ -6,6 +6,7 @@ Process script
 import semantic_version
 
 from db_sync_tool.utility import parser, mode, system, helper, output
+from db_sync_tool.utility.helper import quote_shell_arg
 from db_sync_tool.database import utility as database_utility
 
 
@@ -49,15 +50,26 @@ def create_origin_database_dump():
             _additional = system.config['additional_mysqldump_options']
             _mysqldump_options = _mysqldump_options + f'{_additional} '
 
-        # Run mysql dump command, e.g.
-        # mysqldump --no-tablespaces -u'db' -p'db' -h'db1' -P'3306' 'db'  > /tmp/_db_08-10-2021_07-00.sql
+        # Run mysql dump command
+        # Note: --defaults-file MUST be the first option for MySQL/MariaDB
+        _db_name = quote_shell_arg(system.config[mode.Client.ORIGIN]['db']['name'])
+        _safe_dump_path = quote_shell_arg(_dump_file_path)
+
+        # Get table names and shell-quote them safely (strip backticks first)
+        _raw_tables = database_utility.get_database_tables()
+        _safe_tables = ''
+        if _raw_tables.strip():
+            # Split on backtick-quoted names, strip backticks, shell-quote each
+            _table_names = [t.strip('`') for t in _raw_tables.split() if t.strip('`')]
+            _safe_tables = ' ' + ' '.join(quote_shell_arg(t) for t in _table_names)
+
         mode.run_command(
-            helper.get_command(mode.Client.ORIGIN, 'mysqldump') + ' ' + _mysqldump_options +
-            database_utility.generate_mysql_credentials(mode.Client.ORIGIN) + ' \'' +
-            system.config[mode.Client.ORIGIN]['db']['name'] + '\' ' +
+            helper.get_command(mode.Client.ORIGIN, 'mysqldump') + ' ' +
+            database_utility.generate_mysql_credentials(mode.Client.ORIGIN) + ' ' +
+            _mysqldump_options + _db_name + ' ' +
             database_utility.generate_ignore_database_tables() +
-            database_utility.get_database_tables() +
-            ' > ' + _dump_file_path,
+            _safe_tables +
+            ' > ' + _safe_dump_path,
             mode.Client.ORIGIN,
             skip_dry_run=True
         )
@@ -147,10 +159,12 @@ def import_database_dump_file(client, filepath):
     :return:
     """
     if helper.check_file_exists(client, filepath):
+        _db_name = quote_shell_arg(system.config[client]['db']['name'])
+        _safe_filepath = quote_shell_arg(filepath)
         mode.run_command(
             helper.get_command(client, 'mysql') + ' ' +
-            database_utility.generate_mysql_credentials(client) + ' \'' +
-            system.config[client]['db']['name'] + '\' < ' + filepath,
+            database_utility.generate_mysql_credentials(client) + ' ' +
+            _db_name + ' < ' + _safe_filepath,
             client,
             skip_dry_run=True
         )
@@ -166,11 +180,14 @@ def prepare_origin_database_dump():
         'Compressing database dump',
         True
     )
+    _dump_dir = helper.get_dump_dir(mode.Client.ORIGIN)
+    _dump_file = database_utility.database_dump_file_name
+    _safe_archive = quote_shell_arg(_dump_dir + _dump_file + '.tar.gz')
+    _safe_dir = quote_shell_arg(_dump_dir)
+    _safe_file = quote_shell_arg(_dump_file)
     mode.run_command(
-        helper.get_command(mode.Client.ORIGIN, 'tar') + ' cfvz ' + helper.get_dump_dir(
-            mode.Client.ORIGIN) + database_utility.database_dump_file_name + '.tar.gz -C ' +
-        helper.get_dump_dir(mode.Client.ORIGIN) + ' ' +
-        database_utility.database_dump_file_name + ' > /dev/null',
+        helper.get_command(mode.Client.ORIGIN, 'tar') + ' cfvz ' + _safe_archive +
+        ' -C ' + _safe_dir + ' ' + _safe_file + ' > /dev/null',
         mode.Client.ORIGIN,
         skip_dry_run=True
     )
@@ -182,10 +199,13 @@ def prepare_target_database_dump():
     :return:
     """
     output.message(output.Subject.TARGET, 'Extracting database dump', True)
+    _dump_dir = helper.get_dump_dir(mode.Client.TARGET)
+    _dump_file = database_utility.database_dump_file_name
+    _safe_archive = quote_shell_arg(_dump_dir + _dump_file + '.tar.gz')
+    _safe_dir = quote_shell_arg(_dump_dir)
     mode.run_command(
-        helper.get_command('target', 'tar') + ' xzf ' + helper.get_dump_dir(mode.Client.TARGET) +
-        database_utility.database_dump_file_name + '.tar.gz -C ' +
-        helper.get_dump_dir(mode.Client.TARGET) + ' > /dev/null',
+        helper.get_command('target', 'tar') + ' xzf ' + _safe_archive +
+        ' -C ' + _safe_dir + ' > /dev/null',
         mode.Client.TARGET,
         skip_dry_run=True
     )
@@ -196,26 +216,24 @@ def clear_database(client):
     Clearing the database by dropping all tables
     https://www.techawaken.com/drop-tables-mysql-database/
 
-    { mysql -hHOSTNAME -uUSERNAME -pPASSWORD -Nse 'show tables' DB_NAME; } |
+    { mysql --defaults-file=... -Nse 'show tables' DB_NAME; } |
     ( while read table; do if [ -z ${i+x} ]; then echo 'SET FOREIGN_KEY_CHECKS = 0;'; fi; i=1;
     echo "drop table \`$table\`;"; done;
     echo 'SET FOREIGN_KEY_CHECKS = 1;' ) |
-    awk '{print}' ORS=' ' | mysql -hHOSTNAME -uUSERNAME -pPASSWORD DB_NAME;
+    awk '{print}' ORS=' ' | mysql --defaults-file=... DB_NAME;
 
     :param client: String
     :return:
     """
+    _db_name = quote_shell_arg(system.config[client]['db']['name'])
     mode.run_command(
         '{ ' + helper.get_command(client, 'mysql') + ' ' +
         database_utility.generate_mysql_credentials(client) +
-        ' -Nse \'show tables\' \'' +
-        system.config[client]['db']['name'] + '\'; }' +
+        ' -Nse \'show tables\' ' + _db_name + '; }' +
         ' | ( while read table; do if [ -z ${i+x} ]; then echo \'SET FOREIGN_KEY_CHECKS = 0;\'; fi; i=1; ' +
-        'echo "drop table \\`$table\\`;"; done; echo \'SET FOREIGN_KEY_CHECKS = 1;\' ) | awk \'{print}\' ORS=' ' | ' +
-        ' ' +
+        'echo "drop table \\`$table\\`;"; done; echo \'SET FOREIGN_KEY_CHECKS = 1;\' ) | awk \'{print}\' ORS=\' \' | ' +
         helper.get_command(client, 'mysql') + ' ' +
-        database_utility.generate_mysql_credentials(client) + ' ' +
-        system.config[client]['db']['name'],
+        database_utility.generate_mysql_credentials(client) + ' ' + _db_name,
         client,
         skip_dry_run=True
     )

@@ -4,7 +4,7 @@ Sync script
 """
 
 from db_sync_tool.utility import system, helper, info
-from db_sync_tool.database import process
+from db_sync_tool.database import process, utility as database_utility
 from db_sync_tool.remote import transfer, client as remote_client
 
 
@@ -53,27 +53,31 @@ class Sync:
             config = {}
 
         info.print_header(mute)
-        system.check_args_options(
-            config_file,
-            verbose,
-            yes,
-            mute,
-            dry_run,
-            import_file,
-            dump_name,
-            keep_dump,
-            host_file,
-            clear,
-            force_password,
-            use_rsync,
-            use_rsync_options,
-            reverse
-        )
-        system.get_configuration(config, args)
-        system.check_authorizations()
-        process.create_origin_database_dump()
-        transfer.transfer_origin_database_dump()
-        process.import_database_dump()
-        helper.clean_up()
-        remote_client.close_ssh_clients()
+        try:
+            system.check_args_options(
+                config_file,
+                verbose,
+                yes,
+                mute,
+                dry_run,
+                import_file,
+                dump_name,
+                keep_dump,
+                host_file,
+                clear,
+                force_password,
+                use_rsync,
+                use_rsync_options,
+                reverse
+            )
+            system.get_configuration(config, args)
+            system.check_authorizations()
+            process.create_origin_database_dump()
+            transfer.transfer_origin_database_dump()
+            process.import_database_dump()
+            helper.clean_up()
+        finally:
+            # Always clean up sensitive credential files, even on error
+            database_utility.cleanup_mysql_config_files()
+            remote_client.close_ssh_clients()
         info.print_footer()
