@@ -48,7 +48,7 @@ def test_keep_dump(run_sync):
     result = run_sync("www2", f"{CONFIGS}/download/sync-www1-to-local.json",
                       ["-kd", "/var/www/html/tests/fixtures/www2/download/", "-dn", "dump"])
     assert result.returncode == 0, result.stderr
-    assert file_exists_local("fixtures/www2/download/dump.sql")
+    assert file_exists_local("fixtures/www2/download/dump.sql.gz")
 
 
 @pytest.mark.integration

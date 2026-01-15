@@ -59,16 +59,18 @@ def remove_target_database_dump():
     :return:
     """
     _file_path = helper.get_dump_dir(mode.Client.TARGET) + database_utility.database_dump_file_name
+    _gz_file_path = _file_path + '.gz'
 
     #
     # Move dump to specified directory
     #
     if system.config['keep_dump']:
         helper.create_local_temporary_data_dir()
-        _keep_dump_path = system.default_local_sync_path + database_utility.database_dump_file_name
+        # Copy the .gz file (streaming compression means only .gz exists)
+        _keep_dump_path = system.default_local_sync_path + database_utility.database_dump_file_name + '.gz'
         mode.run_command(
             helper.get_command('target',
-                               'cp') + ' ' + _file_path + ' ' + _keep_dump_path,
+                               'cp') + ' ' + _gz_file_path + ' ' + _keep_dump_path,
             mode.Client.TARGET
         )
         output.message(
@@ -91,18 +93,17 @@ def remove_target_database_dump():
         if system.config['dry_run']:
             return
 
-        _gz_path = _file_path + '.gz'
         if mode.is_target_remote():
             # Remove both decompressed .sql and compressed .gz
             mode.run_command(
-                helper.get_command(mode.Client.TARGET, 'rm') + ' -f ' + _file_path + ' ' + _gz_path,
+                helper.get_command(mode.Client.TARGET, 'rm') + ' -f ' + _file_path + ' ' + _gz_file_path,
                 mode.Client.TARGET
             )
         else:
             if os.path.isfile(_file_path):
                 os.remove(_file_path)
-            if os.path.isfile(_gz_path):
-                os.remove(_gz_path)
+            if os.path.isfile(_gz_file_path):
+                os.remove(_gz_file_path)
 
 
 def check_keys_from_ssh_agent():
