@@ -153,127 +153,90 @@ def get_configuration(host_config, args = {}):
     log.get_logger().info('Starting db_sync_tool')
 
 
-def build_config(args, pre_run = False):
+# Argument mapping: (arg_name, config_path)
+# config_path is a tuple: (client, key) or (client, nested_key, key) or just (key,) for top-level
+_ARG_MAPPINGS_PRE_RUN = [
+    ('type', ('type',)),
+    ('tables', ('tables',)),
+    ('origin', ('link_origin',)),
+    ('target', ('link_target',)),
+]
+
+_ARG_MAPPINGS_MAIN = [
+    # Target client mappings
+    ('target_path', (mode.Client.TARGET, 'path')),
+    ('target_name', (mode.Client.TARGET, 'name')),
+    ('target_host', (mode.Client.TARGET, 'host')),
+    ('target_user', (mode.Client.TARGET, 'user')),
+    ('target_password', (mode.Client.TARGET, 'password')),
+    ('target_key', (mode.Client.TARGET, 'ssh_key')),
+    ('target_port', (mode.Client.TARGET, 'port')),
+    ('target_dump_dir', (mode.Client.TARGET, 'dump_dir')),
+    ('target_after_dump', (mode.Client.TARGET, 'after_dump')),
+    ('target_db_name', (mode.Client.TARGET, 'db', 'name')),
+    ('target_db_host', (mode.Client.TARGET, 'db', 'host')),
+    ('target_db_user', (mode.Client.TARGET, 'db', 'user')),
+    ('target_db_password', (mode.Client.TARGET, 'db', 'password')),
+    ('target_db_port', (mode.Client.TARGET, 'db', 'port')),
+    # Origin client mappings
+    ('origin_path', (mode.Client.ORIGIN, 'path')),
+    ('origin_name', (mode.Client.ORIGIN, 'name')),
+    ('origin_host', (mode.Client.ORIGIN, 'host')),
+    ('origin_user', (mode.Client.ORIGIN, 'user')),
+    ('origin_password', (mode.Client.ORIGIN, 'password')),
+    ('origin_key', (mode.Client.ORIGIN, 'ssh_key')),
+    ('origin_port', (mode.Client.ORIGIN, 'port')),
+    ('origin_dump_dir', (mode.Client.ORIGIN, 'dump_dir')),
+    ('origin_db_name', (mode.Client.ORIGIN, 'db', 'name')),
+    ('origin_db_host', (mode.Client.ORIGIN, 'db', 'host')),
+    ('origin_db_user', (mode.Client.ORIGIN, 'db', 'user')),
+    ('origin_db_password', (mode.Client.ORIGIN, 'db', 'password')),
+    ('origin_db_port', (mode.Client.ORIGIN, 'db', 'port')),
+    # Top-level config mappings
+    ('where', ('where',)),
+    ('additional_mysqldump_options', ('additional_mysqldump_options',)),
+]
+
+
+def _apply_arg_mapping(args, mapping):
     """
-    ADding the provided arguments
-    :param args:
-    :param pre_run:
-    :return:
+    Apply argument mappings to config dict.
+
+    :param args: Argument namespace
+    :param mapping: List of (arg_name, config_path) tuples
+    """
+    for arg_name, config_path in mapping:
+        value = getattr(args, arg_name, None)
+        if value is None:
+            continue
+
+        if len(config_path) == 1:
+            # Top-level config key
+            config[config_path[0]] = value
+        elif len(config_path) == 2:
+            # Client-level key: (client, key)
+            config[config_path[0]][config_path[1]] = value
+        elif len(config_path) == 3:
+            # Nested client key: (client, nested_key, key)
+            check_config_dict_key(config_path[0], config_path[1])
+            config[config_path[0]][config_path[1]][config_path[2]] = value
+
+
+def build_config(args, pre_run=False):
+    """
+    Apply provided CLI arguments to config dict.
+
+    :param args: Argument namespace from argparse
+    :param pre_run: Boolean, if True only apply link-related args
+    :return: config dict
     """
     if args is None or not args:
         return {}
 
-    if not args.type is None:
-        config['type'] = args.type
+    _apply_arg_mapping(args, _ARG_MAPPINGS_PRE_RUN)
 
-    if not args.tables is None:
-        config['tables'] = args.tables
-
-    if not args.origin is None:
-        config['link_origin'] = args.origin
-
-    if not args.target is None:
-        config['link_target'] = args.target
-
-    # for order reasons check just the link arguments
-    if pre_run: return
-
-    if not args.target_path is None:
-        config[mode.Client.TARGET]['path'] = args.target_path
-
-    if not args.target_name is None:
-        config[mode.Client.TARGET]['name'] = args.target_name
-
-    if not args.target_host is None:
-        config[mode.Client.TARGET]['host'] = args.target_host
-
-    if not args.target_user is None:
-        config[mode.Client.TARGET]['user'] = args.target_user
-
-    if not args.target_password is None:
-        config[mode.Client.TARGET]['password'] = args.target_password
-
-    if not args.target_key is None:
-        config[mode.Client.TARGET]['ssh_key'] = args.target_key
-
-    if not args.target_port is None:
-        config[mode.Client.TARGET]['port'] = args.target_port
-
-    if not args.target_dump_dir is None:
-        config[mode.Client.TARGET]['dump_dir'] = args.target_dump_dir
-
-    if not args.target_db_name is None:
-        check_config_dict_key(mode.Client.TARGET, 'db')
-        config[mode.Client.TARGET]['db']['name'] = args.target_db_name
-
-    if not args.target_db_host is None:
-        check_config_dict_key(mode.Client.TARGET, 'db')
-        config[mode.Client.TARGET]['db']['host'] = args.target_db_host
-
-    if not args.target_db_user is None:
-        check_config_dict_key(mode.Client.TARGET, 'db')
-        config[mode.Client.TARGET]['db']['user'] = args.target_db_user
-
-    if not args.target_db_password is None:
-        check_config_dict_key(mode.Client.TARGET, 'db')
-        config[mode.Client.TARGET]['db']['password'] = args.target_db_password
-
-    if not args.target_db_port is None:
-        check_config_dict_key(mode.Client.TARGET, 'db')
-        config[mode.Client.TARGET]['db']['port'] = args.target_db_port
-
-    if not args.target_after_dump is None:
-        config[mode.Client.TARGET]['after_dump'] = args.target_after_dump
-
-    if not args.origin_path is None:
-        config[mode.Client.ORIGIN]['path'] = args.origin_path
-
-    if not args.origin_name is None:
-        config[mode.Client.ORIGIN]['name'] = args.origin_name
-
-    if not args.origin_host is None:
-        config[mode.Client.ORIGIN]['host'] = args.origin_host
-
-    if not args.origin_user is None:
-        config[mode.Client.ORIGIN]['user'] = args.origin_user
-
-    if not args.origin_password is None:
-        config[mode.Client.ORIGIN]['password'] = args.origin_password
-
-    if not args.origin_key is None:
-        config[mode.Client.ORIGIN]['ssh_key'] = args.origin_key
-
-    if not args.origin_port is None:
-        config[mode.Client.ORIGIN]['port'] = args.origin_port
-
-    if not args.origin_dump_dir is None:
-        config[mode.Client.ORIGIN]['dump_dir'] = args.origin_dump_dir
-
-    if not args.origin_db_name is None:
-        check_config_dict_key(mode.Client.ORIGIN, 'db')
-        config[mode.Client.ORIGIN]['db']['name'] = args.origin_db_name
-
-    if not args.origin_db_host is None:
-        check_config_dict_key(mode.Client.ORIGIN, 'db')
-        config[mode.Client.ORIGIN]['db']['host'] = args.origin_db_host
-
-    if not args.origin_db_user is None:
-        check_config_dict_key(mode.Client.ORIGIN, 'db')
-        config[mode.Client.ORIGIN]['db']['user'] = args.origin_db_user
-
-    if not args.origin_db_password is None:
-        check_config_dict_key(mode.Client.ORIGIN, 'db')
-        config[mode.Client.ORIGIN]['db']['password'] = args.origin_db_password
-
-    if not args.origin_db_port is None:
-        check_config_dict_key(mode.Client.ORIGIN, 'db')
-        config[mode.Client.ORIGIN]['db']['port'] = args.origin_db_port
-
-    if not args.where is None:
-        config['where'] = args.where
-
-    if not args.additional_mysqldump_options is None:
-        config['additional_mysqldump_options'] = args.additional_mysqldump_options
+    if not pre_run:
+        _apply_arg_mapping(args, _ARG_MAPPINGS_MAIN)
 
     return config
 
