@@ -31,13 +31,18 @@ def create_origin_database_dump():
             True
         )
 
-        _mysqldump_options = '--no-tablespaces '
+        # Performance-optimized mysqldump options:
+        # --single-transaction: Consistent snapshot without locks (InnoDB)
+        # --quick: Row-by-row streaming instead of buffering in memory
+        # --extended-insert: Multi-row INSERTs (30-50% smaller dumps)
+        # --no-tablespaces: Skip tablespace info (requires PROCESS privilege in MySQL 8+)
+        _mysqldump_options = '--single-transaction --quick --extended-insert --no-tablespaces '
+
         # Remove --no-tablespaces option for mysql < 5.6
-        # @ToDo: Better option handling
-        if not _database_version is None:
+        if _database_version is not None:
             if _database_version[0] == database_utility.DatabaseSystem.MYSQL and \
                     semantic_version.Version(_database_version[1]) < semantic_version.Version('5.6.0'):
-                _mysqldump_options = ''
+                _mysqldump_options = '--single-transaction --quick --extended-insert '
 
         # Adding additional where clause to sync only selected rows
         if system.config['where'] != '':
