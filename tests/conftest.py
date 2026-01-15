@@ -70,6 +70,15 @@ def reset_test_state(docker_up):
                 "/var/www/html/tests/fixtures/test.log 2>/dev/null || true"
             ])
 
+    def set_permissions():
+        # Set write permissions for SSH user on fixtures directories (needed for CI)
+        for container in ["www1", "www2"]:
+            exec_in_container(container, [
+                "sh", "-c",
+                "chmod -R 777 /var/www/html/tests/fixtures/www1 "
+                "/var/www/html/tests/fixtures/www2 2>/dev/null || true"
+            ])
+
     # Reset databases
     for db in ["db1", "db2"]:
         exec_in_container(db, [
@@ -78,6 +87,7 @@ def reset_test_state(docker_up):
         ])
 
     cleanup()
+    set_permissions()
     yield
     cleanup()
 
