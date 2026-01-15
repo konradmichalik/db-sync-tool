@@ -368,6 +368,28 @@ def _generate_mysql_credentials_legacy(client, force_password=True):
     return _credentials
 
 
+def get_dump_file_path(client):
+    """
+    Get the path to the dump file (without .gz extension).
+    DRY helper for consistent path construction.
+
+    :param client: String client identifier
+    :return: String path to dump file
+    """
+    return helper.get_dump_dir(client) + database_dump_file_name
+
+
+def get_dump_gz_path(client):
+    """
+    Get the path to the compressed dump file (.gz).
+    DRY helper for consistent path construction.
+
+    :param client: String client identifier
+    :return: String path to compressed dump file
+    """
+    return get_dump_file_path(client) + '.gz'
+
+
 def get_dump_cat_command(client, filepath):
     """
     Get the appropriate command to read a dump file (handles .gz compression).

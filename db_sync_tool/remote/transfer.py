@@ -51,7 +51,7 @@ def get_origin_database_dump(target_path):
         helper.check_and_create_dump_dir(mode.Client.TARGET, target_path)
 
     if not system.config['dry_run']:
-        _remotepath = helper.get_dump_dir(mode.Client.ORIGIN) + database_utility.database_dump_file_name + '.gz'
+        _remotepath = database_utility.get_dump_gz_path(mode.Client.ORIGIN)
         _localpath = target_path
 
         if system.config['use_rsync']:
@@ -67,7 +67,7 @@ def get_origin_database_dump(target_path):
             # https://github.com/paramiko/paramiko/issues/60
             #
             sftp = get_sftp_client(client.ssh_client_origin)
-            sftp.get(helper.get_dump_dir(mode.Client.ORIGIN) + database_utility.database_dump_file_name + '.gz',
+            sftp.get(database_utility.get_dump_gz_path(mode.Client.ORIGIN),
                      target_path + database_utility.database_dump_file_name + '.gz', download_status)
             sftp.close()
             if not system.config['mute']:
@@ -128,7 +128,7 @@ def put_origin_database_dump(origin_path):
             #
             sftp = get_sftp_client(client.ssh_client_target)
             sftp.put(origin_path + database_utility.database_dump_file_name + '.gz',
-                     helper.get_dump_dir(mode.Client.TARGET) + database_utility.database_dump_file_name + '.gz',
+                     database_utility.get_dump_gz_path(mode.Client.TARGET),
                      upload_status)
             sftp.close()
             if not system.config['mute']:

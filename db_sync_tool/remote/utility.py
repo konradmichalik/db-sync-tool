@@ -25,8 +25,7 @@ def remove_origin_database_dump(keep_compressed_file=False):
     if system.config['dry_run']:
         return
 
-    _file_path = helper.get_dump_dir(mode.Client.ORIGIN) + database_utility.database_dump_file_name
-    _gz_path = _file_path + '.gz'
+    _gz_path = database_utility.get_dump_gz_path(mode.Client.ORIGIN)
 
     # With streaming compression, only .gz file exists on origin (no separate .sql)
     if not keep_compressed_file:
@@ -58,8 +57,8 @@ def remove_target_database_dump():
     Removing the target database dump files
     :return:
     """
-    _file_path = helper.get_dump_dir(mode.Client.TARGET) + database_utility.database_dump_file_name
-    _gz_file_path = _file_path + '.gz'
+    _file_path = database_utility.get_dump_file_path(mode.Client.TARGET)
+    _gz_file_path = database_utility.get_dump_gz_path(mode.Client.TARGET)
 
     #
     # Move dump to specified directory

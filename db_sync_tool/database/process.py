@@ -21,8 +21,7 @@ def create_origin_database_dump():
         helper.check_and_create_dump_dir(mode.Client.ORIGIN,
                                          helper.get_dump_dir(mode.Client.ORIGIN))
 
-        _dump_file_path = helper.get_dump_dir(
-            mode.Client.ORIGIN) + database_utility.database_dump_file_name
+        _dump_file_path = database_utility.get_dump_file_path(mode.Client.ORIGIN)
 
         _database_version = database_utility.get_database_version(mode.Client.ORIGIN)
         output.message(
@@ -117,8 +116,7 @@ def import_database_dump():
             _dump_path = system.config['import']
         else:
             # Internal dump file (always .gz now)
-            _dump_path = helper.get_dump_dir(
-                mode.Client.TARGET) + database_utility.database_dump_file_name + '.gz'
+            _dump_path = database_utility.get_dump_gz_path(mode.Client.TARGET)
 
         if not system.config['yes']:
             _host_name = helper.get_ssh_host_name(mode.Client.TARGET, True) if mode.is_remote(
