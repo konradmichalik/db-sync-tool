@@ -167,6 +167,21 @@ def run_database_command(client, command, force_database_name=False):
         client, True)
 
 
+def run_sql_batch_with_fk_disabled(client, statements):
+    """
+    Execute multiple SQL statements in one roundtrip with FK checks disabled.
+    DRY helper for batch operations like TRUNCATE or DROP.
+
+    :param client: String client identifier
+    :param statements: List of SQL statements (without trailing semicolons)
+    :return: None
+    """
+    if not statements:
+        return
+    sql = 'SET FOREIGN_KEY_CHECKS = 0; ' + '; '.join(statements) + '; SET FOREIGN_KEY_CHECKS = 1;'
+    run_database_command(client, sql, True)
+
+
 def generate_database_dump_filename():
     """
     Generate a database dump filename like "_[name]_[date].sql" or using the give filename
@@ -218,15 +233,9 @@ def truncate_tables():
     if not tables_to_truncate:
         return
 
-    # Build single SQL command with all truncates
-    truncate_statements = []
-    for table in tables_to_truncate:
-        _safe_table = sanitize_table_name(table)
-        truncate_statements.append(f'TRUNCATE TABLE {_safe_table}')
-
-    # Execute all truncates in one roundtrip with FK checks disabled
-    _sql_command = 'SET FOREIGN_KEY_CHECKS = 0; ' + '; '.join(truncate_statements) + '; SET FOREIGN_KEY_CHECKS = 1;'
-    run_database_command(mode.Client.TARGET, _sql_command, True)
+    # Build and execute TRUNCATE statements
+    statements = [f'TRUNCATE TABLE {sanitize_table_name(t)}' for t in tables_to_truncate]
+    run_sql_batch_with_fk_disabled(mode.Client.TARGET, statements)
 
 
 def generate_ignore_database_tables():
@@ -360,69 +369,61 @@ def _generate_mysql_credentials_legacy(client, force_password=True):
     return _credentials
 
 
+def get_dump_cat_command(client, filepath):
+    """
+    Get the appropriate command to read a dump file (handles .gz compression).
+    DRY helper for check_database_dump and count_tables.
+
+    :param client: String client identifier
+    :param filepath: String path to dump file
+    :return: String command prefix for reading the file
+    """
+    if filepath.endswith('.gz'):
+        return f'{helper.get_command(client, "gunzip")} -c {filepath}'
+    return f'{helper.get_command(client, "cat")} {filepath}'
+
+
 def check_database_dump(client, filepath):
     """
     Checking the last line of the dump file if it contains "-- Dump completed on"
-    Supports both plain .sql and compressed .gz files
     :param client: String
     :param filepath: String
     :return:
     """
-    if system.config['check_dump']:
-        # Use gunzip -c for .gz files, tail for plain files
-        if filepath.endswith('.gz'):
-            _cmd = helper.get_command(client, 'gunzip') + ' -c ' + filepath + ' | tail -n 1'
-        else:
-            _cmd = helper.get_command(client, 'tail') + ' -n 1 ' + filepath
+    if not system.config['check_dump']:
+        return
 
-        _line = mode.run_command(
-            _cmd,
-            client,
-            True,
-            skip_dry_run=True
-        )
+    _cmd = f'{get_dump_cat_command(client, filepath)} | tail -n 1'
+    _line = mode.run_command(_cmd, client, True, skip_dry_run=True)
 
-        if not _line:
-            return
+    if not _line:
+        return
 
-        if "-- Dump completed on" not in _line:
-            sys.exit(
-                output.message(
-                    output.Subject.ERROR,
-                    'Dump file is corrupted',
-                    do_print=False
-                )
-            )
-        else:
+    if "-- Dump completed on" not in _line:
+        sys.exit(
             output.message(
-                output.host_to_subject(client),
-                'Dump file is valid',
-                verbose_only=True
+                output.Subject.ERROR,
+                'Dump file is corrupted',
+                do_print=False
             )
+        )
+    output.message(
+        output.host_to_subject(client),
+        'Dump file is valid',
+        verbose_only=True
+    )
 
 
 def count_tables(client, filepath):
     """
     Count the reference string in the database dump file to get the count of all exported tables
-    Supports both plain .sql and compressed .gz files
     :param client: String
     :param filepath: String
     :return:
     """
     _reference = 'CREATE TABLE'
-
-    # Use zcat/gunzip for .gz files
-    if filepath.endswith('.gz'):
-        _cmd = f'{helper.get_command(client, "gunzip")} -c {filepath} | grep -ao "{_reference}" | wc -l | xargs'
-    else:
-        _cmd = f'{helper.get_command(client, "grep")} -ao "{_reference}" {filepath} | wc -l | xargs'
-
-    _count = mode.run_command(
-        _cmd,
-        client,
-        True,
-        skip_dry_run=True
-    )
+    _cmd = f'{get_dump_cat_command(client, filepath)} | grep -ao "{_reference}" | wc -l | xargs'
+    _count = mode.run_command(_cmd, client, True, skip_dry_run=True)
 
     if _count:
         output.message(

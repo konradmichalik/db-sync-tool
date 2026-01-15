@@ -221,7 +221,6 @@ def prepare_target_database_dump():
 def clear_database(client):
     """
     Clearing the database by dropping all tables using pure SQL
-    (eliminates shell pipeline overhead)
 
     :param client: String
     :return:
@@ -238,12 +237,6 @@ def clear_database(client):
     if not _tables:
         return
 
-    # Build DROP statements
-    drop_statements = []
-    for table in _tables:
-        _safe_table = database_utility.sanitize_table_name(table)
-        drop_statements.append(f'DROP TABLE {_safe_table}')
-
-    # Execute all drops in one roundtrip with FK checks disabled
-    _sql_command = 'SET FOREIGN_KEY_CHECKS = 0; ' + '; '.join(drop_statements) + '; SET FOREIGN_KEY_CHECKS = 1;'
-    database_utility.run_database_command(client, _sql_command, True)
+    # Build and execute DROP statements
+    statements = [f'DROP TABLE {database_utility.sanitize_table_name(t)}' for t in _tables]
+    database_utility.run_sql_batch_with_fk_disabled(client, statements)
