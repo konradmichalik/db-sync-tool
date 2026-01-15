@@ -84,24 +84,62 @@ class SSHClientManager:
         self._update_legacy_globals()
 
     def close_all(self) -> None:
-        """Close all managed SSH connections."""
-        # Always run after-scripts (they handle local execution too)
-        helper.run_script(mode.Client.ORIGIN, 'after')
-        if self._origin is not None:
-            self._origin.close()
+        """
+        Close all managed SSH connections.
+
+        Uses exception handling to ensure all cleanup steps complete,
+        even if individual steps fail. This is important since close_all()
+        is called from __exit__.
+        """
+        errors = []
+
+        # Origin cleanup
+        try:
+            helper.run_script(mode.Client.ORIGIN, 'after')
+        except Exception as e:
+            errors.append(f"origin after-script: {e}")
+        try:
+            if self._origin is not None:
+                self._origin.close()
+        except Exception as e:
+            errors.append(f"origin close: {e}")
+        finally:
             self._origin = None
 
-        helper.run_script(mode.Client.TARGET, 'after')
-        if self._target is not None:
-            self._target.close()
+        # Target cleanup
+        try:
+            helper.run_script(mode.Client.TARGET, 'after')
+        except Exception as e:
+            errors.append(f"target after-script: {e}")
+        try:
+            if self._target is not None:
+                self._target.close()
+        except Exception as e:
+            errors.append(f"target close: {e}")
+        finally:
             self._target = None
 
-        for client in self._additional:
-            client.close()
+        # Additional clients cleanup
+        for i, client in enumerate(self._additional):
+            try:
+                client.close()
+            except Exception as e:
+                errors.append(f"additional client {i}: {e}")
         self._additional.clear()
 
-        helper.run_script(script='after')
+        # Global after-script
+        try:
+            helper.run_script(script='after')
+        except Exception as e:
+            errors.append(f"global after-script: {e}")
+
+        # Always sync globals
         self._update_legacy_globals()
+
+        # Log errors if any occurred (but don't raise - cleanup should be silent)
+        if errors:
+            for err in errors:
+                output.message(output.Subject.WARNING, f"Cleanup error: {err}", verbose_only=True)
 
     def __enter__(self) -> 'SSHClientManager':
         """Context manager entry."""
