@@ -12,10 +12,10 @@ import secrets
 import base64
 from db_sync_tool.utility import mode, system, helper, output
 
-database_dump_file_name = None
+database_dump_file_name: str | None = None
 
 # Track MySQL config files for cleanup (client -> path)
-_mysql_config_files = {}
+_mysql_config_files: dict[str, str] = {}
 
 
 class DatabaseSystem:
@@ -23,7 +23,7 @@ class DatabaseSystem:
     MARIADB = 'MariaDB'
 
 
-def sanitize_table_name(table):
+def sanitize_table_name(table: str) -> str:
     """
     Validate and sanitize a table name to prevent SQL injection.
     MySQL table names can contain alphanumeric chars, underscores, and dollar signs.
@@ -45,7 +45,7 @@ def sanitize_table_name(table):
     return f"`{table}`"
 
 
-def create_mysql_config_file(client):
+def create_mysql_config_file(client: str) -> str:
     """
     Create a secure temporary MySQL config file with credentials.
     This prevents passwords from appearing in process lists (ps aux).
@@ -104,7 +104,7 @@ def create_mysql_config_file(client):
     return config_path
 
 
-def get_mysql_config_path(client):
+def get_mysql_config_path(client: str) -> str:
     """
     Get the MySQL config file path for a client, creating it if necessary.
 
@@ -116,7 +116,7 @@ def get_mysql_config_path(client):
     return _mysql_config_files[client]
 
 
-def cleanup_mysql_config_files():
+def cleanup_mysql_config_files() -> None:
     """
     Remove all temporary MySQL config files.
     Should be called during cleanup phase.
@@ -142,13 +142,13 @@ def cleanup_mysql_config_files():
     _mysql_config_files = {}
 
 
-def run_database_command(client, command, force_database_name=False):
+def run_database_command(client: str, command: str, force_database_name: bool = False) -> str:
     """
     Run a database command using the "mysql -e" command
-    :param client: String
-    :param command: String database command
-    :param force_database_name: Bool forces the database name
-    :return:
+    :param client: Client identifier
+    :param command: Database command
+    :param force_database_name: Forces the database name
+    :return: Command output
     """
     _database_name = ''
     if force_database_name:
@@ -166,14 +166,13 @@ def run_database_command(client, command, force_database_name=False):
         client, True)
 
 
-def run_sql_batch_with_fk_disabled(client, statements):
+def run_sql_batch_with_fk_disabled(client: str, statements: list[str]) -> None:
     """
     Execute multiple SQL statements in one roundtrip with FK checks disabled.
     DRY helper for batch operations like TRUNCATE or DROP.
 
-    :param client: String client identifier
+    :param client: Client identifier
     :param statements: List of SQL statements (without trailing semicolons)
-    :return: None
     """
     if not statements:
         return
@@ -181,10 +180,9 @@ def run_sql_batch_with_fk_disabled(client, statements):
     run_database_command(client, sql, True)
 
 
-def generate_database_dump_filename():
+def generate_database_dump_filename() -> None:
     """
     Generate a database dump filename like "_[name]_[date].sql" or using the give filename
-    :return:
     """
     global database_dump_file_name
 
@@ -197,10 +195,9 @@ def generate_database_dump_filename():
         database_dump_file_name = system.config['dump_name'] + '.sql'
 
 
-def truncate_tables():
+def truncate_tables() -> None:
     """
     Truncate specified tables before import using batch operation
-    :return: None
     """
     # Workaround for config naming
     if 'truncate_table' in system.config:
@@ -237,11 +234,10 @@ def truncate_tables():
     run_sql_batch_with_fk_disabled(mode.Client.TARGET, statements)
 
 
-def generate_ignore_database_tables():
+def generate_ignore_database_tables() -> str:
     """
     Generate the ignore tables options for the mysqldump command by the given table list
-    # ToDo: Too much conditional nesting
-    :return: String
+    :return: String of ignore table options
     """
     # Workaround for config naming
     if 'ignore_table' in system.config:
@@ -263,11 +259,11 @@ def generate_ignore_database_tables():
     return ''
 
 
-def generate_ignore_database_table(ignore_tables, table):
+def generate_ignore_database_table(ignore_tables: list[str], table: str) -> list[str]:
     """
-    :param ignore_tables: List
-    :param table: String
-    :return: List
+    :param ignore_tables: List of ignore table options
+    :param table: Table name to add
+    :return: Updated list of ignore table options
     """
     # Validate table name to prevent injection
     _safe_table = sanitize_table_name(table)
@@ -280,11 +276,11 @@ def generate_ignore_database_table(ignore_tables, table):
     return ignore_tables
 
 
-def get_database_tables_like(client, name):
+def get_database_tables_like(client: str, name: str) -> list[str] | None:
     """
     Get database table names like the given name
-    :param client: String
-    :param name: String pattern (may contain % wildcard)
+    :param client: Client identifier
+    :param name: Pattern (may contain % wildcard)
     :return: List of table names or None
     """
     _dbname = system.config[client]['db']['name']
@@ -298,10 +294,10 @@ def get_database_tables_like(client, name):
     return None
 
 
-def get_database_tables():
+def get_database_tables() -> str:
     """
     Generate specific tables for export
-    :return: String
+    :return: String of table names
     """
     if system.config['tables'] == '':
         return ''
@@ -316,14 +312,14 @@ def get_database_tables():
     return _result
 
 
-def generate_mysql_credentials(client, force_password=True):
+def generate_mysql_credentials(client: str, force_password: bool = True) -> str:
     """
     Generate the needed database credential information for the mysql command.
     Uses --defaults-file to prevent passwords from appearing in process lists.
 
-    :param client: String client identifier
-    :param force_password: Bool (kept for backwards compatibility, now always uses secure method)
-    :return: String MySQL credentials argument
+    :param client: Client identifier
+    :param force_password: Kept for backwards compatibility, now always uses secure method
+    :return: MySQL credentials argument
     """
     try:
         config_path = get_mysql_config_path(client)
@@ -349,14 +345,14 @@ def generate_mysql_credentials(client, force_password=True):
         return _generate_mysql_credentials_legacy(client, force_password)
 
 
-def _generate_mysql_credentials_legacy(client, force_password=True):
+def _generate_mysql_credentials_legacy(client: str, force_password: bool = True) -> str:
     """
     Legacy method: Generate MySQL credentials as command line arguments.
     WARNING: This exposes passwords in process lists!
 
-    :param client: String client identifier
-    :param force_password: Bool
-    :return: String MySQL credentials arguments
+    :param client: Client identifier
+    :param force_password: Include password in credentials
+    :return: MySQL credentials arguments
     """
     _credentials = '-u\'' + system.config[client]['db']['user'] + '\''
     if force_password:
@@ -368,36 +364,36 @@ def _generate_mysql_credentials_legacy(client, force_password=True):
     return _credentials
 
 
-def get_dump_file_path(client):
+def get_dump_file_path(client: str) -> str:
     """
     Get the path to the dump file (without .gz extension).
     DRY helper for consistent path construction.
 
-    :param client: String client identifier
-    :return: String path to dump file
+    :param client: Client identifier
+    :return: Path to dump file
     """
     return helper.get_dump_dir(client) + database_dump_file_name
 
 
-def get_dump_gz_path(client):
+def get_dump_gz_path(client: str) -> str:
     """
     Get the path to the compressed dump file (.gz).
     DRY helper for consistent path construction.
 
-    :param client: String client identifier
-    :return: String path to compressed dump file
+    :param client: Client identifier
+    :return: Path to compressed dump file
     """
     return get_dump_file_path(client) + '.gz'
 
 
-def get_dump_cat_command(client, filepath):
+def get_dump_cat_command(client: str, filepath: str) -> str:
     """
     Get the appropriate command to read a dump file (handles .gz compression).
     DRY helper for check_database_dump and count_tables.
 
-    :param client: String client identifier
-    :param filepath: String path to dump file
-    :return: String command prefix for reading the file
+    :param client: Client identifier
+    :param filepath: Path to dump file
+    :return: Command prefix for reading the file
     """
     _safe_filepath = helper.quote_shell_arg(filepath)
     if filepath.endswith('.gz'):
@@ -405,12 +401,11 @@ def get_dump_cat_command(client, filepath):
     return f'{helper.get_command(client, "cat")} {_safe_filepath}'
 
 
-def check_database_dump(client, filepath):
+def check_database_dump(client: str, filepath: str) -> None:
     """
     Checking the last line of the dump file if it contains "-- Dump completed on"
-    :param client: String
-    :param filepath: String
-    :return:
+    :param client: Client identifier
+    :param filepath: Path to dump file
     """
     if not system.config['check_dump']:
         return
@@ -436,12 +431,11 @@ def check_database_dump(client, filepath):
     )
 
 
-def count_tables(client, filepath):
+def count_tables(client: str, filepath: str) -> None:
     """
     Count the reference string in the database dump file to get the count of all exported tables
-    :param client: String
-    :param filepath: String
-    :return:
+    :param client: Client identifier
+    :param filepath: Path to dump file
     """
     _reference = 'CREATE TABLE'
     _cmd = f'{get_dump_cat_command(client, filepath)} | grep -ao "{_reference}" | wc -l | xargs'
@@ -454,11 +448,11 @@ def count_tables(client, filepath):
         )
 
 
-def get_database_version(client):
+def get_database_version(client: str) -> tuple[str | None, str | None]:
     """
     Check the database version and distinguish between mysql and mariadb
-    :param client:
-    :return: Tuple<String,String>
+    :param client: Client identifier
+    :return: Tuple of (database_system, version_number)
     """
     _database_system = None
     _version_number = None
