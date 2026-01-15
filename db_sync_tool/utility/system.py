@@ -506,7 +506,8 @@ def link_configuration_with_hosts():
 
         # Adjust filepath from relative to absolute
         if not config['link_hosts'].startswith('/'):
-            config['link_hosts'] = str(Path(config['config_file_path']).resolve().parent / config['link_hosts'])
+            base_path = Path(config['config_file_path']).resolve().parent if config['config_file_path'] else Path.cwd()
+            config['link_hosts'] = str(base_path / config['link_hosts'])
 
         if os.path.isfile(config['link_hosts']):
             with open(config['link_hosts'], 'r') as read_file:
