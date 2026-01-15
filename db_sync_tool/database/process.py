@@ -90,8 +90,7 @@ def import_database_dump():
     Importing the selected database dump file
     :return:
     """
-    if not system.config['is_same_client'] and not mode.is_import():
-        prepare_target_database_dump()
+    # No need to decompress - import_database_dump_file streams .gz directly
 
     if system.config['clear_database']:
         output.message(
@@ -113,11 +112,13 @@ def import_database_dump():
             True
         )
 
-        if not mode.is_import():
-            _dump_path = helper.get_dump_dir(
-                mode.Client.TARGET) + database_utility.database_dump_file_name
-        else:
+        if mode.is_import():
+            # External import file (user-provided path)
             _dump_path = system.config['import']
+        else:
+            # Internal dump file (always .gz now)
+            _dump_path = helper.get_dump_dir(
+                mode.Client.TARGET) + database_utility.database_dump_file_name + '.gz'
 
         if not system.config['yes']:
             _host_name = helper.get_ssh_host_name(mode.Client.TARGET, True) if mode.is_remote(
@@ -159,21 +160,27 @@ def import_database_dump():
 
 def import_database_dump_file(client, filepath):
     """
-    Import a database dump file
+    Import a database dump file (supports both .sql and .gz files)
     :param client: String
     :param filepath: String
     :return:
     """
-    if helper.check_file_exists(client, filepath):
-        _db_name = quote_shell_arg(system.config[client]['db']['name'])
-        _safe_filepath = quote_shell_arg(filepath)
-        mode.run_command(
-            helper.get_command(client, 'mysql') + ' ' +
-            database_utility.generate_mysql_credentials(client) + ' ' +
-            _db_name + ' < ' + _safe_filepath,
-            client,
-            skip_dry_run=True
-        )
+    if not helper.check_file_exists(client, filepath):
+        return
+
+    _db_name = quote_shell_arg(system.config[client]['db']['name'])
+    _safe_filepath = quote_shell_arg(filepath)
+    _mysql_cmd = (helper.get_command(client, 'mysql') + ' ' +
+                  database_utility.generate_mysql_credentials(client) + ' ' + _db_name)
+
+    # Stream .gz files directly to mysql (no intermediate decompression)
+    if filepath.endswith('.gz'):
+        _cmd = (helper.get_command(client, 'gunzip') + ' -c ' + _safe_filepath +
+                ' | ' + _mysql_cmd)
+    else:
+        _cmd = _mysql_cmd + ' < ' + _safe_filepath
+
+    mode.run_command(_cmd, client, skip_dry_run=True)
 
 
 def prepare_origin_database_dump():

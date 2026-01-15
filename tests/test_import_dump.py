@@ -8,7 +8,7 @@ def test_dump_local(run_sync):
     """DUMP_LOCAL: export database locally."""
     result = run_sync("www2", f"{CONFIGS}/dump_local/dump-local.json", ["-dn", "test"])
     assert result.returncode == 0, result.stderr
-    assert file_exists_local("fixtures/www2/database_backup/test.sql.tar.gz")
+    assert file_exists_local("fixtures/www2/database_backup/test.sql.gz")
 
 
 @pytest.mark.integration
@@ -16,7 +16,7 @@ def test_dump_remote(run_sync):
     """DUMP_REMOTE: export database from remote."""
     result = run_sync("www2", f"{CONFIGS}/dump_remote/dump-www1-from-local.json", ["-dn", "test"])
     assert result.returncode == 0, result.stderr
-    assert file_exists_local("fixtures/www1/database_backup/test.sql.tar.gz")
+    assert file_exists_local("fixtures/www1/database_backup/test.sql.gz")
 
 
 @pytest.mark.integration
