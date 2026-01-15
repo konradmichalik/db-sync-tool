@@ -45,7 +45,8 @@ def load_ssh_client(ssh):
     _ssh_client = paramiko.SSHClient()
     # Load known hosts from system for security (prevents MITM attacks)
     _ssh_client.load_system_host_keys()
-    # Warn on unknown hosts instead of auto-accepting (security improvement)
+    # Log warning for unknown hosts but still accept connection (convenience over strict security)
+    # Note: This does NOT prevent MITM - use RejectPolicy() for strict host verification
     _ssh_client.set_missing_host_key_policy(paramiko.WarningPolicy())
 
     _ssh_port = system.config[ssh]['port'] if 'port' in system.config[ssh] else 22
