@@ -7,14 +7,114 @@ Utility script
 import sys
 import datetime
 import re
+import tempfile
+import os
+import secrets
 from db_sync_tool.utility import mode, system, helper, output
 
 database_dump_file_name = None
+
+# Track MySQL config files for cleanup (client -> path)
+_mysql_config_files = {}
 
 
 class DatabaseSystem:
     MYSQL = 'MySQL'
     MARIADB = 'MariaDB'
+
+
+def create_mysql_config_file(client):
+    """
+    Create a secure temporary MySQL config file with credentials.
+    This prevents passwords from appearing in process lists (ps aux).
+
+    :param client: String client identifier ('origin' or 'target')
+    :return: String path to the config file
+    """
+    global _mysql_config_files
+
+    # Verify database config exists
+    if client not in system.config or 'db' not in system.config[client]:
+        raise ValueError(f"Database configuration not found for client: {client}")
+
+    db_config = system.config[client]['db']
+
+    # Build config file content
+    config_content = "[client]\n"
+    config_content += f"user={db_config.get('user', '')}\n"
+    config_content += f"password={db_config.get('password', '')}\n"
+    if 'host' in db_config:
+        config_content += f"host={db_config['host']}\n"
+    if 'port' in db_config:
+        config_content += f"port={db_config['port']}\n"
+
+    random_suffix = secrets.token_hex(8)
+    config_path = f"/tmp/.my_{random_suffix}.cnf"
+
+    if mode.is_remote(client):
+        # For remote clients, create config file on remote system
+        # Using base64 encoding to safely handle special characters in passwords
+        import base64
+        encoded_content = base64.b64encode(config_content.encode()).decode()
+        # Use force_output=True to ensure command completes before proceeding
+        result = mode.run_command(
+            f"echo '{encoded_content}' | base64 -d > {config_path} && chmod 600 {config_path} && echo 'OK'",
+            client,
+            force_output=True,
+            skip_dry_run=True
+        )
+        if result != 'OK':
+            output.message(
+                output.Subject.WARNING,
+                f'Failed to create MySQL config file on remote: {result}',
+                True
+            )
+    else:
+        # For local clients, write directly
+        with open(config_path, 'w') as f:
+            f.write(config_content)
+        os.chmod(config_path, 0o600)
+
+    _mysql_config_files[client] = config_path
+    return config_path
+
+
+def get_mysql_config_path(client):
+    """
+    Get the MySQL config file path for a client, creating it if necessary.
+
+    :param client: String client identifier
+    :return: String path to the config file
+    """
+    if client not in _mysql_config_files:
+        create_mysql_config_file(client)
+    return _mysql_config_files[client]
+
+
+def cleanup_mysql_config_files():
+    """
+    Remove all temporary MySQL config files.
+    Should be called during cleanup phase.
+    """
+    global _mysql_config_files
+
+    for client, config_path in _mysql_config_files.items():
+        try:
+            if mode.is_remote(client):
+                mode.run_command(
+                    f"rm -f {config_path}",
+                    client,
+                    allow_fail=True,
+                    skip_dry_run=True
+                )
+            else:
+                if os.path.exists(config_path):
+                    os.remove(config_path)
+        except Exception:
+            # Silently ignore cleanup errors
+            pass
+
+    _mysql_config_files = {}
 
 
 def run_database_command(client, command, force_database_name=False):
@@ -148,10 +248,43 @@ def get_database_tables():
 
 def generate_mysql_credentials(client, force_password=True):
     """
-    Generate the needed database credential information for the mysql command
-    :param client: String
+    Generate the needed database credential information for the mysql command.
+    Uses --defaults-file to prevent passwords from appearing in process lists.
+
+    :param client: String client identifier
+    :param force_password: Bool (kept for backwards compatibility, now always uses secure method)
+    :return: String MySQL credentials argument
+    """
+    try:
+        config_path = get_mysql_config_path(client)
+        credentials = f"--defaults-file='{config_path}'"
+
+        if system.config.get('verbose', False):
+            output.message(
+                output.host_to_subject(client),
+                f'Using secure credentials file: {config_path}',
+                verbose_only=True
+            )
+
+        return credentials
+    except Exception as e:
+        # Fallback to legacy method if config file creation fails
+        output.message(
+            output.Subject.WARNING,
+            f'Falling back to legacy credentials (config file failed: {e})',
+            True
+        )
+        return _generate_mysql_credentials_legacy(client, force_password)
+
+
+def _generate_mysql_credentials_legacy(client, force_password=True):
+    """
+    Legacy method: Generate MySQL credentials as command line arguments.
+    WARNING: This exposes passwords in process lists!
+
+    :param client: String client identifier
     :param force_password: Bool
-    :return:
+    :return: String MySQL credentials arguments
     """
     _credentials = '-u\'' + system.config[client]['db']['user'] + '\''
     if force_password:

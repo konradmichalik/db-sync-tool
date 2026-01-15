@@ -13,9 +13,15 @@ from db_sync_tool.remote import utility as remote_utility
 
 def clean_up():
     """
-    Clean up
+    Clean up temporary files and resources
     :return:
     """
+    # Import here to avoid circular imports
+    from db_sync_tool.database import utility as database_utility
+
+    # Clean up MySQL config files (security: remove credential files)
+    database_utility.cleanup_mysql_config_files()
+
     if not mode.is_import():
         remote_utility.remove_target_database_dump()
         if mode.get_sync_mode() == mode.SyncMode.PROXY:
