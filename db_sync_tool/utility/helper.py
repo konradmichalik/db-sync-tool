@@ -244,19 +244,26 @@ def run_script(client=None, script='before'):
 
 def check_rsync_version():
     """
-    Check rsync version
-    :return:
+    Check rsync version and availability.
+
+    :return: True if rsync is available, False otherwise
     """
     _raw_version = mode.run_command(
         'rsync --version',
         mode.Client.LOCAL,
-        True
+        force_output=True,
+        allow_fail=True
     )
     _version = parse_version(_raw_version)
-    output.message(
-        output.Subject.LOCAL,
-        f'rsync version {_version}'
-    )
+
+    if _version:
+        output.message(
+            output.Subject.LOCAL,
+            f'rsync version {_version}'
+        )
+        return True
+
+    return False
 
 
 def check_sshpass_version():

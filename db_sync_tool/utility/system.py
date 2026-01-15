@@ -294,9 +294,17 @@ def check_options():
         config['check_dump'] = config['check_dump']
 
     # Check rsync availability if enabled (default: True)
+    # Falls back to Paramiko SFTP if rsync is not available
     if config['use_rsync']:
-        helper.check_rsync_version()
-        helper.check_sshpass_version()
+        if helper.check_rsync_version():
+            helper.check_sshpass_version()
+        else:
+            config['use_rsync'] = False
+            output.message(
+                output.Subject.WARNING,
+                'rsync not found, falling back to SFTP transfer',
+                True
+            )
 
     reverse_hosts()
     mode.check_sync_mode()
