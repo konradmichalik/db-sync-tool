@@ -9,11 +9,12 @@ import os
 import re
 import shlex
 from pathlib import Path
+from typing import Any
 from db_sync_tool.utility import mode, system, output
 from db_sync_tool.remote import utility as remote_utility
 
 
-def quote_shell_arg(arg):
+def quote_shell_arg(arg: Any) -> str:
     """
     Safely quote a string for use as a shell argument.
     Prevents command injection by escaping special characters.
@@ -26,10 +27,9 @@ def quote_shell_arg(arg):
     return shlex.quote(str(arg))
 
 
-def clean_up():
+def clean_up() -> None:
     """
     Clean up temporary files and resources
-    :return:
     """
     # Note: MySQL config files are cleaned up in sync.py's finally block
     # to ensure cleanup even on errors
@@ -39,10 +39,9 @@ def clean_up():
             remove_temporary_data_dir()
 
 
-def remove_temporary_data_dir():
+def remove_temporary_data_dir() -> None:
     """
     Remove temporary data directory for storing database dump files
-    :return:
     """
     if os.path.exists(system.default_local_sync_path):
         output.message(
@@ -53,13 +52,12 @@ def remove_temporary_data_dir():
         shutil.rmtree(system.default_local_sync_path)
 
 
-def clean_up_dump_dir(client, path, num=5):
+def clean_up_dump_dir(client: str, path: str, num: int = 5) -> None:
     """
     Clean up the dump directory from old dump files (only affect .sql and .gz files)
-    :param client:
-    :param path:
-    :param num:
-    :return:
+    :param client: Client identifier
+    :param path: Path to dump directory
+    :param num: Number of files to keep
     """
     # Distinguish stat command on os system (Darwin|Linux)
     if check_os(client).strip() == 'Darwin':
@@ -90,11 +88,11 @@ def clean_up_dump_dir(client, path, num=5):
             )
 
 
-def check_os(client):
+def check_os(client: str) -> str:
     """
     Check which system is running (Linux|Darwin)
-    :param client:
-    :return:
+    :param client: Client identifier
+    :return: OS name
     """
     return mode.run_command(
         get_command(client, 'uname') + ' -s',
@@ -103,11 +101,11 @@ def check_os(client):
     )
 
 
-def get_command(client, command):
+def get_command(client: str, command: str) -> str:
     """
     Get command helper for overriding default commands on the given client
-    :param client:
-    :param command:
+    :param client: Client identifier
+    :param command: Command name
     :return: String command
     """
     if 'console' in system.config[client]:
@@ -116,10 +114,10 @@ def get_command(client, command):
     return command
 
 
-def get_dump_dir(client):
+def get_dump_dir(client: str) -> str:
     """
     Get database dump directory by client
-    :param client:
+    :param client: Client identifier
     :return: String path
     """
     if system.config[f'default_{client}_dump_dir']:
@@ -128,12 +126,11 @@ def get_dump_dir(client):
         return system.config[client]['dump_dir']
 
 
-def check_and_create_dump_dir(client, path):
+def check_and_create_dump_dir(client: str, path: str) -> None:
     """
     Check if a path exists on the client system and creates the given path if necessary
-    :param client:
-    :param path:
-    :return:
+    :param client: Client identifier
+    :param path: Path to check/create
     """
     _safe_path = quote_shell_arg(path)
     mode.run_command(
@@ -142,13 +139,13 @@ def check_and_create_dump_dir(client, path):
     )
 
 
-def get_ssh_host_name(client, with_user=False, minimal=False):
+def get_ssh_host_name(client: str, with_user: bool = False, minimal: bool = False) -> str:
     """
     Format ssh host name depending on existing client name
-    :param client:
-    :param with_user:
-    :param short:
-    :return:
+    :param client: Client identifier
+    :param with_user: Include username in output
+    :param minimal: Return minimal format
+    :return: Formatted host name
     """
     if not 'user' in system.config[client] and not 'host' in system.config[client]:
         return ''
@@ -169,10 +166,9 @@ def get_ssh_host_name(client, with_user=False, minimal=False):
         return _host
 
 
-def create_local_temporary_data_dir():
+def create_local_temporary_data_dir() -> None:
     """
     Create local temporary data dir with secure permissions
-    :return:
     """
     # Skip secure permissions for user-specified keep_dump directories
     if system.config['keep_dump']:
@@ -183,14 +179,14 @@ def create_local_temporary_data_dir():
         system.create_secure_temp_dir(system.default_local_sync_path)
 
 
-def dict_to_args(dict):
+def dict_to_args(data: dict[str, Any]) -> list[str] | None:
     """
-    Convert an dictionary to a args list
-    :param dict: Dictionary
-    :return: List
+    Convert a dictionary to an args list
+    :param data: Dictionary to convert
+    :return: List of arguments or None if empty
     """
     _args = []
-    for key, val in dict.items():
+    for key, val in data.items():
         if isinstance(val, bool):
             if val:
                 _args.append(f'--{key}')
@@ -202,23 +198,22 @@ def dict_to_args(dict):
     return _args
 
 
-def check_file_exists(client, path):
+def check_file_exists(client: str, path: str) -> bool:
     """
     Check if a file exists
-    :param client: String
-    :param path: String file path
+    :param client: Client identifier
+    :param path: File path
     :return: Boolean
     """
     _safe_path = quote_shell_arg(path)
     return mode.run_command(f'[ -f {_safe_path} ] && echo "1"', client, True) == '1'
 
 
-def run_script(client=None, script='before'):
+def run_script(client: str | None = None, script: str = 'before') -> None:
     """
     Executing script command
-    :param client: String
-    :param script: String
-    :return:
+    :param client: Client identifier (or None for global scripts)
+    :param script: Script name ('before', 'after', 'error')
     """
     if client is None:
         _config = system.config
@@ -243,7 +238,7 @@ def run_script(client=None, script='before'):
         )
 
 
-def check_rsync_version():
+def check_rsync_version() -> bool:
     """
     Check rsync version and availability.
 
@@ -267,10 +262,10 @@ def check_rsync_version():
     return False
 
 
-def check_sshpass_version():
+def check_sshpass_version() -> bool | None:
     """
     Check sshpass version
-    :return:
+    :return: True if available, None otherwise
     """
     _raw_version = mode.run_command(
         'sshpass -V',
@@ -289,32 +284,34 @@ def check_sshpass_version():
         return True
 
 
-def parse_version(output):
+def parse_version(version_output: str | None) -> str | None:
     """
     Parse version out of console output
     https://stackoverflow.com/a/60730346
-    :param output: String
-    :return:
+    :param version_output: Console output string
+    :return: Version string or None
     """
+    if not version_output:
+        return None
     _version_pattern = r'\d+(=?\.(\d+(=?\.(\d+)*)*)*)*'
     _regex_matcher = re.compile(_version_pattern)
-    _version = _regex_matcher.search(output)
+    _version = _regex_matcher.search(version_output)
     if _version:
         return _version.group(0)
     else:
         return None
 
 
-def get_file_from_path(path):
+def get_file_from_path(path: str) -> str:
     """
     Trims a path string to retrieve the file
-    :param path:
-    :return: file
+    :param path: File path
+    :return: File name
     """
     return Path(path).name
 
 
-def confirm(prompt=None, resp=False):
+def confirm(prompt: str | None = None, resp: bool = False) -> bool:
     """
     https://code.activestate.com/recipes/541096-prompt-the-user-for-confirmation/
 
@@ -354,7 +351,7 @@ def confirm(prompt=None, resp=False):
             return False
 
 
-def clean_db_config(config):
+def clean_db_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Iterates over all entries of a dictionary and removes enclosing inverted commas
     from the values, if present.
@@ -366,7 +363,7 @@ def clean_db_config(config):
     return {key: remove_surrounding_quotes(value) for key, value in config.items()}
 
 
-def remove_surrounding_quotes(s):
+def remove_surrounding_quotes(s: Any) -> Any:
     """
     Removes the enclosing inverted commas (single or double),
     if there are quotes at both the beginning and the end of the string.
@@ -382,7 +379,7 @@ def remove_surrounding_quotes(s):
     return s
 
 
-def run_sed_command(client, command):
+def run_sed_command(client: str, command: str) -> str:
     """
     Executes a sed command on the specified client, trying -E first and falling back to -r if -E fails.
 
