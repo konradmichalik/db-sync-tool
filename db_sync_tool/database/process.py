@@ -183,48 +183,6 @@ def import_database_dump_file(client, filepath):
     mode.run_command(_cmd, client, skip_dry_run=True)
 
 
-def prepare_origin_database_dump():
-    """
-    Preparing the origin database dump file by compressing them as .tar.gz
-    :return:
-    """
-    output.message(
-        output.Subject.ORIGIN,
-        'Compressing database dump',
-        True
-    )
-    _dump_dir = helper.get_dump_dir(mode.Client.ORIGIN)
-    _dump_file = database_utility.database_dump_file_name
-    _safe_archive = quote_shell_arg(_dump_dir + _dump_file + '.tar.gz')
-    _safe_dir = quote_shell_arg(_dump_dir)
-    _safe_file = quote_shell_arg(_dump_file)
-    mode.run_command(
-        helper.get_command(mode.Client.ORIGIN, 'tar') + ' cfvz ' + _safe_archive +
-        ' -C ' + _safe_dir + ' ' + _safe_file + ' > /dev/null',
-        mode.Client.ORIGIN,
-        skip_dry_run=True
-    )
-
-
-def prepare_target_database_dump():
-    """
-    Preparing the target database dump by decompressing the .gz file
-    :return:
-    """
-    output.message(output.Subject.TARGET, 'Extracting database dump', True)
-    _dump_dir = helper.get_dump_dir(mode.Client.TARGET)
-    _dump_file = database_utility.database_dump_file_name
-    _safe_gz_file = quote_shell_arg(_dump_dir + _dump_file + '.gz')
-    _safe_sql_file = quote_shell_arg(_dump_dir + _dump_file)
-    # Use gunzip -c to preserve the .gz file for potential retry
-    mode.run_command(
-        helper.get_command(mode.Client.TARGET, 'gunzip') + ' -c ' + _safe_gz_file +
-        ' > ' + _safe_sql_file,
-        mode.Client.TARGET,
-        skip_dry_run=True
-    )
-
-
 def clear_database(client):
     """
     Clearing the database by dropping all tables using pure SQL
