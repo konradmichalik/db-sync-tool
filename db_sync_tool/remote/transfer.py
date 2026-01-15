@@ -76,20 +76,42 @@ def get_origin_database_dump(target_path):
     utility.remove_origin_database_dump()
 
 
+def _transfer_status(sent, size, direction, subject_override=None):
+    """
+    Print transfer progress status.
+
+    :param sent: Bytes transferred
+    :param size: Total bytes
+    :param direction: 'downloaded' or 'uploaded'
+    :param subject_override: Optional subject prefix override
+    """
+    if system.config['mute']:
+        return
+
+    sent_mb = round(float(sent) / 1024 / 1024, 1)
+    size_mb = round(float(size) / 1024 / 1024, 1)
+
+    if subject_override:
+        subject = subject_override
+    elif direction == 'downloaded':
+        subject = output.Subject.ORIGIN + output.CliFormat.BLACK + '[REMOTE]' + output.CliFormat.ENDC
+    elif mode.get_sync_mode() == mode.SyncMode.PROXY:
+        subject = output.Subject.LOCAL
+    else:
+        subject = output.Subject.ORIGIN + output.CliFormat.BLACK + '[LOCAL]' + output.CliFormat.ENDC
+
+    sys.stdout.write(f"{subject} Status: {sent_mb} MB of {size_mb} MB {direction}")
+    sys.stdout.write('\r')
+
+
 def download_status(sent, size):
     """
-    Printing the download status information
-    :param sent: Float
-    :param size: Float
-    :return:
+    Callback for SFTP download progress.
+
+    :param sent: Bytes transferred
+    :param size: Total bytes
     """
-    if not system.config['mute']:
-        sent_mb = round(float(sent) / 1024 / 1024, 1)
-        size = round(float(size) / 1024 / 1024, 1)
-        sys.stdout.write(
-            output.Subject.ORIGIN + output.CliFormat.BLACK + '[REMOTE]' + output.CliFormat.ENDC + " Status: {0} MB of {1} MB downloaded".
-            format(sent_mb, size, ))
-        sys.stdout.write('\r')
+    _transfer_status(sent, size, 'downloaded')
 
 
 def put_origin_database_dump(origin_path):
@@ -138,24 +160,12 @@ def put_origin_database_dump(origin_path):
 
 def upload_status(sent, size):
     """
-    Printing the upload status information
-    :param sent: Float
-    :param size: Float
-    :return:
+    Callback for SFTP upload progress.
+
+    :param sent: Bytes transferred
+    :param size: Total bytes
     """
-    if not system.config['mute']:
-        sent_mb = round(float(sent) / 1024 / 1024, 1)
-        size = round(float(size) / 1024 / 1024, 1)
-
-        if (mode.get_sync_mode() == mode.SyncMode.PROXY):
-            _subject = output.Subject.LOCAL
-        else:
-            _subject = output.Subject.ORIGIN + output.CliFormat.BLACK + '[LOCAL]' + output.CliFormat.ENDC
-
-        sys.stdout.write(
-            _subject + " Status: {0} MB of {1} MB uploaded".
-            format(sent_mb, size, ))
-        sys.stdout.write('\r')
+    _transfer_status(sent, size, 'uploaded')
 
 
 def get_sftp_client(ssh_client):
