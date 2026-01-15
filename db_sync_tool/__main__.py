@@ -7,7 +7,6 @@ Main script
 import argparse
 import os
 import sys
-from collections import defaultdict
 
 # Workaround for ModuleNotFoundError
 sys.path.append(os.getcwd())
