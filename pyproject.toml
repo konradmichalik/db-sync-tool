@@ -1,0 +1,71 @@
+[tool.ruff]
+# Target Python 3.10+
+target-version = "py310"
+
+# Line length to match common standards
+line-length = 120
+
+# Exclude common directories
+exclude = [
+    ".git",
+    ".github",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".idea",
+]
+
+[tool.ruff.lint]
+# Enable common rule sets
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+]
+
+# Ignore specific rules that may be too strict for existing codebase
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E701",   # multiple statements on one line
+    "E713",   # test for membership should be `not in`
+    "E714",   # test for identity should be `is not`
+    "W605",   # invalid escape sequence (many in SQL strings)
+    "F541",   # f-string without placeholders
+    "B006",   # mutable default argument
+    "B008",   # function call in default argument
+    "B012",   # return in finally
+    "B905",   # zip without strict
+    "SIM102", # nested if statements
+    "SIM103", # return condition directly
+    "SIM108", # ternary operator
+    "SIM114", # combine if branches
+    "SIM401", # use dict.get()
+    "UP007",  # Use X | Y for Union
+    "UP009",  # UTF-8 encoding declaration
+    "UP015",  # redundant open mode
+    "UP030",  # implicit format references
+    "UP031",  # format specifiers vs percent
+    "UP032",  # f-string vs format()
+    "UP036",  # outdated version block
+    "I001",   # import sorting (can be enabled later)
+]
+
+# Allow unused variables when underscore-prefixed
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests can have more relaxed rules
+"tests/*" = ["B", "SIM"]
+# __init__ files often have unused imports for re-export
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["db_sync_tool"]
