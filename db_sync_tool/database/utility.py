@@ -268,9 +268,11 @@ def get_database_tables_like(client, name):
     :return: List of table names or None
     """
     _dbname = system.config[client]['db']['name']
+    # Validate database name to prevent SQL injection
+    _safe_dbname = sanitize_table_name(_dbname)
     # Escape single quotes in the pattern to prevent SQL injection
     _safe_pattern = name.replace("'", "''")
-    _tables = run_database_command(client, f'SHOW TABLES FROM `{_dbname}` LIKE \'{_safe_pattern}\';').strip()
+    _tables = run_database_command(client, f'SHOW TABLES FROM {_safe_dbname} LIKE \'{_safe_pattern}\';').strip()
     if _tables != '':
         return _tables.split('\n')[1:]
     return None
