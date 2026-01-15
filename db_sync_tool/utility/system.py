@@ -9,7 +9,6 @@ import json
 import os
 import getpass
 import secrets
-import tempfile
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
 from db_sync_tool.remote import utility as remote_utility

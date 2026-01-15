@@ -7,7 +7,6 @@ Utility script
 import sys
 import datetime
 import re
-import tempfile
 import os
 import secrets
 import base64
