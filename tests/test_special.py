@@ -54,11 +54,12 @@ def test_keep_dump(run_sync):
 @pytest.mark.integration
 def test_cleanup_old_backups(run_sync):
     """Clean up old backup files based on keep_dumps setting."""
-    # Setup: Create dummy backup files inside container (avoids permission issues)
+    # Setup: Create dummy backup files inside container with write permissions for SSH user
     exec_in_container("www1", [
         "bash", "-c",
         "mkdir -p /var/www/html/tests/fixtures/www1/database_backup && "
-        "touch /var/www/html/tests/fixtures/www1/database_backup/{1,2,3,4,5}.sql"
+        "touch /var/www/html/tests/fixtures/www1/database_backup/{1,2,3,4,5}.sql && "
+        "chmod 777 /var/www/html/tests/fixtures/www1/database_backup"
     ])
 
     result = run_sync("www2", f"{CONFIGS}/cleanup/dump-www1-from-local.json", ["-dn", "test"])
