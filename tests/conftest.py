@@ -58,11 +58,11 @@ def reset_test_state(docker_up):
     def cleanup():
         for www in ["www1", "www2"]:
             base = TESTS_DIR / "fixtures" / www
-            # Remove backup directories
+            # Remove backup directories (ignore_errors for Docker root-owned files)
             for d in ["database_backup", "download"]:
                 path = base / d
                 if path.exists():
-                    shutil.rmtree(path)
+                    shutil.rmtree(path, ignore_errors=True)
             # Remove script marker fixtures
             for f in ["before_script.txt", "after_script.txt",
                       "before_script_global.txt", "after_script_global.txt"]:
