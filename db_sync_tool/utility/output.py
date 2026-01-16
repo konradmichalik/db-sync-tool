@@ -93,19 +93,26 @@ def message(header, message, do_print=True, do_log=False, debug=False, verbose_o
                 subject_str = _SUBJECT_MAP.get(header, "INFO")
                 is_remote = _is_remote_for_header(header)
 
+                # Strip ANSI codes from message before passing to OutputManager
+                clean_message = remove_multiple_elements_from_string([
+                    CliFormat.BEIGE, CliFormat.PURPLE, CliFormat.BLUE,
+                    CliFormat.YELLOW, CliFormat.GREEN, CliFormat.RED,
+                    CliFormat.BLACK, CliFormat.ENDC, CliFormat.BOLD,
+                    CliFormat.UNDERLINE
+                ], message)
+
                 # Use new OutputManager
                 if header == Subject.ERROR:
-                    output_manager.error(message)
+                    output_manager.error(clean_message)
                 elif header == Subject.WARNING:
-                    output_manager.warning(message)
+                    output_manager.warning(clean_message)
                 elif debug:
-                    output_manager.debug(message)
+                    output_manager.debug(clean_message)
                 else:
-                    output_manager.step(message, subject=subject_str, remote=is_remote, debug=debug)
-                    # For non-progress messages, immediately mark as success
-                    # to show the checkmark
-                    if output_manager.format != OutputFormat.JSON:
-                        output_manager.success()
+                    # Legacy API: messages are logged after completion
+                    # Set up step context for success() to use, then show completed
+                    output_manager._setup_step(clean_message, subject=subject_str, remote=is_remote)
+                    output_manager.success()
         else:
             return header + extend_output_by_sync_mode(header, debug) + ' ' + message
 

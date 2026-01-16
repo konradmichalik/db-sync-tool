@@ -52,7 +52,7 @@ class Sync:
         if config is None:
             config = {}
 
-        info.print_header(mute)
+        info.print_header(mute, verbose)
         try:
             system.check_args_options(
                 config_file,

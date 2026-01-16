@@ -76,9 +76,10 @@ def get_arguments(args):
                         required=False,
                         type=str)
     parser.add_argument('-v', '--verbose',
-                        help='Enable extended console output',
+                        help='Enable verbose output (-v) or debug output (-vv)',
                         required=False,
-                        action='store_true')
+                        action='count',
+                        default=0)
     parser.add_argument('-y', '--yes',
                         help='Skipping user confirmation for database import',
                         required=False,

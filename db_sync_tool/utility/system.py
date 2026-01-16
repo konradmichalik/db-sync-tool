@@ -20,7 +20,7 @@ from db_sync_tool.remote import utility as remote_utility
 #
 
 config: dict[str, Any] = {
-    'verbose': False,
+    'verbose': 0,  # 0=compact, 1=verbose, 2=debug
     'mute': False,
     'dry_run': False,
     'keep_dump': False,
