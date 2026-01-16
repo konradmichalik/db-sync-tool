@@ -234,7 +234,7 @@ def run_command(command: str, client: str, force_output: bool = False,
         )
 
     if system.config['dry_run'] and skip_dry_run:
-        return
+        return None
 
     if is_remote(client):
         if force_output:
@@ -252,6 +252,8 @@ def run_command(command: str, client: str, force_output: bool = False,
 
         if force_output:
             return out.decode().strip()
+
+        return None
 
 
 def check_for_protection() -> None:
