@@ -3,13 +3,15 @@
 """
 Pure parsing functions for framework configuration files.
 
-This module contains parsing functions with no dependencies on other project modules,
+This module contains parsing functions with minimal dependencies,
 allowing proper unit testing and code coverage measurement.
+Only depends on utility/exceptions.py which has no other project dependencies.
 
 Functions here are imported and used by the framework recipe modules.
 """
 
 from urllib.parse import urlparse, unquote
+from db_sync_tool.utility.exceptions import ParsingError
 
 
 def parse_symfony_database_url(db_credentials: str) -> dict:
@@ -20,7 +22,7 @@ def parse_symfony_database_url(db_credentials: str) -> dict:
 
     :param db_credentials: DATABASE_URL string
     :return: Dictionary with db_type, user, password, host, port, name
-    :raises ValueError: If format doesn't match expected pattern
+    :raises ParsingError: If format doesn't match expected pattern
     """
     db_credentials = str(db_credentials).replace('\\n\'', '')
 
@@ -34,16 +36,16 @@ def parse_symfony_database_url(db_credentials: str) -> dict:
 
     # Validate required components (password is required for database connections)
     if not all([parsed.scheme, parsed.username, parsed.hostname, parsed.port, parsed.path]):
-        raise ValueError('Mismatch of expected database credentials')
+        raise ParsingError('Mismatch of expected database credentials')
 
     # Password is required
     if parsed.password is None:
-        raise ValueError('Mismatch of expected database credentials')
+        raise ParsingError('Mismatch of expected database credentials')
 
     # Extract database name from path (remove leading /)
     dbname = parsed.path.lstrip('/')
     if not dbname:
-        raise ValueError('Mismatch of expected database credentials')
+        raise ParsingError('Mismatch of expected database credentials')
 
     # These are validated as non-None above, but mypy can't infer that
     assert parsed.username is not None
