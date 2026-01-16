@@ -97,6 +97,7 @@ class OutputManager:
         self._start_time = time.time()
         self._console: Any = None
         self._escape: Callable[[str], str] | None = None
+        self._gitlab_section_id: str | None = None
 
         if self.format == OutputFormat.INTERACTIVE:
             self._init_rich()
@@ -359,8 +360,8 @@ class OutputManager:
         if self.ci_provider == CIProvider.GITHUB:
             print(f"::group::{title}")
         elif self.ci_provider == CIProvider.GITLAB:
-            section_id = title.lower().replace(" ", "_")
-            print(f"\033[0Ksection_start:{int(time.time())}:{section_id}[collapsed=true]\r\033[0K{title}")
+            self._gitlab_section_id = title.lower().replace(" ", "_")
+            print(f"\033[0Ksection_start:{int(time.time())}:{self._gitlab_section_id}[collapsed=true]\r\033[0K{title}")
 
     def group_end(self) -> None:
         """End a collapsible group (CI mode only)."""
@@ -368,8 +369,9 @@ class OutputManager:
             return
         if self.ci_provider == CIProvider.GITHUB:
             print("::endgroup::")
-        elif self.ci_provider == CIProvider.GITLAB:
-            print(f"\033[0Ksection_end:{int(time.time())}:section\r\033[0K")
+        elif self.ci_provider == CIProvider.GITLAB and self._gitlab_section_id:
+            print(f"\033[0Ksection_end:{int(time.time())}:{self._gitlab_section_id}\r\033[0K")
+            self._gitlab_section_id = None
 
 
 # Global singleton
