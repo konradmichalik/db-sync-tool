@@ -4,10 +4,12 @@
 Symfony script
 """
 
-import re
 import sys
 
 from db_sync_tool.utility import mode, system, helper, output
+from db_sync_tool.recipes.parsing import (  # noqa: F401 (re-export)
+    parse_symfony_database_url,
+)
 
 
 def check_configuration(client):
@@ -46,16 +48,9 @@ def parse_database_credentials(db_credentials):
     :param db_credentials: Dictionary
     :return: Dictionary
     """
-    db_credentials = str(db_credentials).replace('\\n\'','')
-    # DATABASE_URL=mysql://db-user:1234@db-host:3306/db-name
-    pattern = r'^DATABASE_URL=(?P<db_type>\w+):\/\/(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)\/(?P<name>[^?]+)(?:\?.*)?$'
-
-    match = re.match(pattern, db_credentials)
-
-    if match:
-        db_config = match.groupdict()
-        return db_config
-    else:
+    try:
+        return parse_symfony_database_url(db_credentials)
+    except ValueError:
         sys.exit(
             output.message(
                 output.Subject.ERROR,

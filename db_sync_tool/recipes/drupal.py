@@ -6,6 +6,9 @@ Drupal script
 
 import json
 from db_sync_tool.utility import mode, system, helper, output
+from db_sync_tool.recipes.parsing import (  # noqa: F401 (re-export)
+    parse_drupal_drush_credentials,
+)
 
 
 def check_configuration(client):
@@ -127,12 +130,4 @@ def parse_database_credentials(db_credentials):
     :param db_credentials: Dictionary
     :return: Dictionary
     """
-    _db_config = {
-        'name': db_credentials['db-name'],
-        'host': db_credentials['db-hostname'],
-        'password': db_credentials['db-password'],
-        'port': db_credentials['db-port'],
-        'user': db_credentials['db-username'],
-    }
-
-    return _db_config
+    return parse_drupal_drush_credentials(db_credentials)

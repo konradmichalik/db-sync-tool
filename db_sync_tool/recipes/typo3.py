@@ -8,6 +8,9 @@ import json
 import sys
 
 from db_sync_tool.utility import mode, system, helper, output
+from db_sync_tool.recipes.parsing import (  # noqa: F401 (re-export)
+    parse_typo3_database_credentials,
+)
 
 
 def check_configuration(client):
@@ -72,21 +75,7 @@ def parse_database_credentials(db_credentials):
     :param db_credentials: Dictionary
     :return: Dictionary
     """
-    #
-    # Distinguish between database config scheme of TYPO3 v8+ and TYPO3 v7-
-    #
-    if 'Connections' in db_credentials:
-        _db_config = db_credentials['Connections']['Default']
-        _db_config['name'] = _db_config['dbname']
-    else:
-        _db_config = db_credentials
-        _db_config['user'] = _db_config['username']
-        _db_config['name'] = _db_config['database']
-
-    if 'port' not in _db_config:
-        _db_config['port'] = 3306
-
-    return _db_config
+    return parse_typo3_database_credentials(db_credentials)
 
 
 def get_database_setting_from_additional_configuration(client, name, file):
