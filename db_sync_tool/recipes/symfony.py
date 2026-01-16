@@ -4,9 +4,8 @@
 Symfony script
 """
 
-import sys
-
-from db_sync_tool.utility import mode, system, helper, output
+from db_sync_tool.utility import mode, system, helper
+from db_sync_tool.utility.exceptions import ParsingError
 from db_sync_tool.recipes.parsing import (  # noqa: F401 (re-export)
     parse_symfony_database_url,
 )
@@ -50,14 +49,8 @@ def parse_database_credentials(db_credentials):
     """
     try:
         return parse_symfony_database_url(db_credentials)
-    except ValueError:
-        sys.exit(
-            output.message(
-                output.Subject.ERROR,
-                'Mismatch of expected database credentials',
-                False
-            )
-        )
+    except (ValueError, ParsingError):
+        raise ParsingError('Mismatch of expected database credentials') from None
 
 
 def get_database_parameter(client, name, file):

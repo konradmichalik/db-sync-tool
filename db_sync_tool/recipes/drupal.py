@@ -6,6 +6,7 @@ Drupal script
 
 import json
 from db_sync_tool.utility import mode, system, helper, output
+from db_sync_tool.utility.exceptions import ParsingError
 from db_sync_tool.recipes.parsing import (  # noqa: F401 (re-export)
     parse_drupal_drush_credentials,
 )
@@ -68,7 +69,7 @@ def check_configuration_drush(client):
         True
     )
     if not stdout:
-        raise RuntimeError('Failed to read Drupal configuration via drush')
+        raise ParsingError('Failed to read Drupal configuration via drush')
 
     _db_config = parse_database_credentials(json.loads(stdout))
 

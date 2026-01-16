@@ -5,9 +5,9 @@ TYPO3 script
 """
 
 import json
-import sys
 
-from db_sync_tool.utility import mode, system, helper, output
+from db_sync_tool.utility import mode, system, helper
+from db_sync_tool.utility.exceptions import ParsingError
 from db_sync_tool.recipes.parsing import (  # noqa: F401 (re-export)
     parse_typo3_database_credentials,
 )
@@ -30,7 +30,7 @@ def check_configuration(client):
             True
         )
         if not stdout:
-            raise RuntimeError('Failed to read TYPO3 configuration')
+            raise ParsingError('Failed to read TYPO3 configuration')
 
         _db_config = parse_database_credentials(json.loads(stdout)['DB'])
     elif '.env' in _path:
@@ -58,12 +58,10 @@ def check_configuration(client):
             'user': get_database_setting_from_additional_configuration(client, 'user', system.config[client]['path']),
         }
     else:
-        sys.exit(
-            output.message(
-                output.Subject.ERROR,
-                f'Can\'t extract database information from given path {system.config[client]["path"]}. Can only extract settings from the following files: LocalConfiguration.php, AdditionalConfiguration.php, .env',
-                False
-            )
+        raise ParsingError(
+            f'Can\'t extract database information from given path {system.config[client]["path"]}. '
+            f'Can only extract settings from the following files: LocalConfiguration.php, '
+            f'AdditionalConfiguration.php, .env'
         )
 
     system.config[client]['db'] = helper.clean_db_config(_db_config)

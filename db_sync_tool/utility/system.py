@@ -4,7 +4,6 @@
 System module
 """
 
-import sys
 import json
 import os
 import getpass
@@ -13,6 +12,7 @@ from pathlib import Path
 from typing import Any
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
+from db_sync_tool.utility.exceptions import ConfigError
 from db_sync_tool.remote import utility as remote_utility
 
 #
@@ -112,13 +112,9 @@ def get_configuration(host_config, args = {}):
                 elif _config_file_path.endswith('.yaml') or _config_file_path.endswith('.yml'):
                     config.update(yaml.safe_load(read_file))
                 else:
-                    sys.exit(
-                        output.message(
-                            output.Subject.ERROR,
-                            f'Unsupported configuration file type [json,yml,yaml]: '
-                            f'{config["config_file_path"]}',
-                            False
-                        )
+                    raise ConfigError(
+                        f'Unsupported configuration file type [json,yml,yaml]: '
+                        f'{config["config_file_path"]}'
                     )
                 output.message(
                     output.Subject.LOCAL,
@@ -127,12 +123,8 @@ def get_configuration(host_config, args = {}):
                     True
                 )
         else:
-            sys.exit(
-                output.message(
-                    output.Subject.ERROR,
-                    f'Local configuration not found: {config["config_file_path"]}',
-                    False
-                )
+            raise ConfigError(
+                f'Local configuration not found: {config["config_file_path"]}'
             )
 
     # workaround for argument order handling respecting the linking feature
@@ -144,12 +136,8 @@ def get_configuration(host_config, args = {}):
     check_options()
 
     if not config[mode.Client.TARGET] and not config[mode.Client.ORIGIN]:
-        sys.exit(
-            output.message(
-                output.Subject.ERROR,
-                f'Configuration is missing, use a separate file or provide host parameter',
-                False
-            )
+        raise ConfigError(
+            'Configuration is missing, use a separate file or provide host parameter'
         )
     helper.run_script(script='before')
     log.get_logger().info('Starting db_sync_tool')
@@ -307,13 +295,7 @@ def check_authorization(client):
         elif 'ssh_key' in config[client]:
             _ssh_key = config[client]['ssh_key']
             if not os.path.isfile(_ssh_key):
-                sys.exit(
-                    output.message(
-                        output.Subject.ERROR,
-                        f'SSH {client} private key not found: {_ssh_key}',
-                        False
-                    )
-                )
+                raise ConfigError(f'SSH {client} private key not found: {_ssh_key}')
         elif 'password' in config[client]:
             config[client]['password'] = config[client]['password']
         elif remote_utility.check_keys_from_ssh_agent():
@@ -492,15 +474,11 @@ def link_configuration_with_hosts():
 
         if config['link_hosts'] == '':
             # Try to find default hosts.json file in same directory
-            sys.exit(
-                output.message(
-                    output.Subject.ERROR,
-                    f'Missing hosts file for linking hosts with configuration. '
-                    f'Use the "-o" / "--hosts" argument to define the filepath for the hosts file, '
-                    f'when using a link parameter within the configuration or define the the '
-                    f'filepath direct in the link entry e.g. "host.yaml@entry1".',
-                    False
-                )
+            raise ConfigError(
+                'Missing hosts file for linking hosts with configuration. '
+                'Use the "-o" / "--hosts" argument to define the filepath for the hosts file, '
+                'when using a link parameter within the configuration or define the '
+                'filepath direct in the link entry e.g. "host.yaml@entry1".'
             )
 
     if config['link_hosts'] != '':
@@ -538,30 +516,14 @@ def link_configuration_with_hosts():
                             config[mode.Client.TARGET] = _hosts[config['link_target']]
                             config[mode.Client.ORIGIN] = _hosts[config['link_origin']]
                         else:
-                            sys.exit(
-                                output.message(
-                                    output.Subject.ERROR,
-                                    f'Misconfiguration of link hosts {config["link_origin"]}, '
-                                    f'{config["link_target"]} in {config["link_hosts"]}',
-                                    False
-                                )
+                            raise ConfigError(
+                                f'Misconfiguration of link hosts {config["link_origin"]}, '
+                                f'{config["link_target"]} in {config["link_hosts"]}'
                             )
                     else:
-                        sys.exit(
-                            output.message(
-                                output.Subject.ERROR,
-                                f'Missing link hosts for {config["link_hosts"]}',
-                                False
-                            )
-                        )
+                        raise ConfigError(f'Missing link hosts for {config["link_hosts"]}')
         else:
-            sys.exit(
-                output.message(
-                    output.Subject.ERROR,
-                    f'Local host file not found: {config["link_hosts"]}',
-                    False
-                )
-            )
+            raise ConfigError(f'Local host file not found: {config["link_hosts"]}')
 
 
 def check_config_dict_key(client, key):

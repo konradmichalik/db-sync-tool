@@ -4,9 +4,9 @@
 Validation script
 """
 
-import sys
 from jsonschema import validators
 from db_sync_tool.utility import output
+from db_sync_tool.utility.exceptions import ValidationError
 
 #
 # GLOBALS
@@ -106,10 +106,4 @@ def check(config):
             True
         )
     if errors:
-        sys.exit(
-            output.message(
-                output.Subject.ERROR,
-                'Validation error(s)',
-                do_print=False
-            )
-        )
+        raise ValidationError('Configuration validation failed')

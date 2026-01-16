@@ -3,13 +3,16 @@
 """
 Security utility functions.
 
-This module contains pure security functions with no dependencies on other
-project modules, making them safe to import without circular import issues.
+This module contains pure security functions with minimal dependencies,
+making them safe to import without circular import issues.
+Only depends on utility/exceptions.py which has no other project dependencies.
 """
 
 import re
 import shlex
 from typing import Any
+
+from db_sync_tool.utility.exceptions import ValidationError
 
 
 def quote_shell_arg(arg: Any) -> str:
@@ -33,14 +36,14 @@ def sanitize_table_name(table: str) -> str:
 
     :param table: Table name to sanitize
     :return: Backtick-quoted table name
-    :raises ValueError: If table name contains invalid characters
+    :raises ValidationError: If table name contains invalid characters
     """
     if not table:
-        raise ValueError("Table name cannot be empty")
+        raise ValidationError("Table name cannot be empty")
 
     # Allow alphanumeric, underscore, hyphen, dot, dollar sign
     if not re.match(r'^[a-zA-Z0-9_$.-]+$', table):
-        raise ValueError(f"Invalid table name: {table}")
+        raise ValidationError(f"Invalid table name: {table}")
 
     return f"`{table}`"
 

@@ -4,8 +4,8 @@
 System script
 """
 
-import sys
 from db_sync_tool.utility import mode, output, helper
+from db_sync_tool.utility.exceptions import DbSyncError
 from db_sync_tool.remote import client as remote_client
 
 
@@ -37,7 +37,7 @@ def run_ssh_command(command, ssh_client=remote_client.ssh_client_origin, client=
 
     if err and exit_status != 0:
         helper.run_script(client=client, script='error')
-        sys.exit(output.message(output.Subject.ERROR, err, False))
+        raise DbSyncError(err)
     elif err:
         output.message(output.Subject.WARNING, err, True)
 

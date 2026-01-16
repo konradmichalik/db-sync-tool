@@ -4,7 +4,6 @@
 Utility script
 """
 
-import sys
 import datetime
 import re
 import os
@@ -12,6 +11,7 @@ import secrets
 import base64
 from db_sync_tool.utility import mode, system, helper, output
 from db_sync_tool.utility.security import sanitize_table_name  # noqa: F401 (re-export)
+from db_sync_tool.utility.exceptions import ConfigError, DbSyncError
 
 database_dump_file_name: str | None = None
 
@@ -36,7 +36,7 @@ def create_mysql_config_file(client: str) -> str:
 
     # Verify database config exists
     if client not in system.config or 'db' not in system.config[client]:
-        raise ValueError(f"Database configuration not found for client: {client}")
+        raise ConfigError(f"Database configuration not found for client: {client}")
 
     db_config = system.config[client]['db']
 
@@ -353,7 +353,7 @@ def get_dump_file_path(client: str) -> str:
     :return: Path to dump file
     """
     if database_dump_file_name is None:
-        raise RuntimeError('database_dump_file_name not initialized')
+        raise DbSyncError('database_dump_file_name not initialized')
     return helper.get_dump_dir(client) + database_dump_file_name
 
 
@@ -399,13 +399,7 @@ def check_database_dump(client: str, filepath: str) -> None:
         return
 
     if "-- Dump completed on" not in _line:
-        sys.exit(
-            output.message(
-                output.Subject.ERROR,
-                'Dump file is corrupted',
-                do_print=False
-            )
-        )
+        raise DbSyncError('Dump file is corrupted')
     output.message(
         output.host_to_subject(client),
         'Dump file is valid',
