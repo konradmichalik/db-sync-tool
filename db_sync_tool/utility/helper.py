@@ -6,9 +6,6 @@ Helper script
 
 import shutil
 import os
-import re
-from pathlib import Path
-from typing import Any
 from db_sync_tool.utility import mode, system, output
 from db_sync_tool.utility.security import quote_shell_arg  # noqa: F401 (re-export)
 from db_sync_tool.utility.pure import (  # noqa: F401 (re-export)
