@@ -11,7 +11,7 @@ import secrets
 import base64
 from db_sync_tool.utility import mode, system, helper, output
 from db_sync_tool.utility.security import sanitize_table_name  # noqa: F401 (re-export)
-from db_sync_tool.utility.exceptions import ConfigError, DatabaseError
+from db_sync_tool.utility.exceptions import ConfigError, DbSyncError
 
 database_dump_file_name: str | None = None
 
@@ -353,7 +353,7 @@ def get_dump_file_path(client: str) -> str:
     :return: Path to dump file
     """
     if database_dump_file_name is None:
-        raise DatabaseError('database_dump_file_name not initialized')
+        raise DbSyncError('database_dump_file_name not initialized')
     return helper.get_dump_dir(client) + database_dump_file_name
 
 
@@ -399,7 +399,7 @@ def check_database_dump(client: str, filepath: str) -> None:
         return
 
     if "-- Dump completed on" not in _line:
-        raise DatabaseError('Dump file is corrupted')
+        raise DbSyncError('Dump file is corrupted')
     output.message(
         output.host_to_subject(client),
         'Dump file is valid',
