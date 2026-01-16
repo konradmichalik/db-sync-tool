@@ -138,16 +138,16 @@ class TestDatabaseConfig:
         """Create from minimal dictionary."""
         config = DatabaseConfig.from_dict({"name": "testdb"})
         assert config.name == "testdb"
-        assert config.host == "localhost"  # default
-        assert config.port == 3306  # default
+        assert config.host == ""  # empty default (frameworks fill in)
+        assert config.port == 0  # zero default (frameworks use 3306)
 
     @pytest.mark.unit
     def test_from_dict_none(self):
         """Create from None returns defaults."""
         config = DatabaseConfig.from_dict(None)
         assert config.name == ""
-        assert config.host == "localhost"
-        assert config.port == 3306
+        assert config.host == ""
+        assert config.port == 0
 
     @pytest.mark.unit
     def test_from_dict_empty(self):
