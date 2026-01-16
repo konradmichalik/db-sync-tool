@@ -12,6 +12,7 @@
 set -e
 
 cd "$(dirname "$0")"
+PROJECT_ROOT="$(cd .. && pwd)"
 
 OUTPUT_MODE="${1:-interactive}"
 shift 2>/dev/null || true
@@ -22,10 +23,18 @@ echo "Mode: $OUTPUT_MODE"
 [ -n "$EXTRA_ARGS" ] && echo "Args: $EXTRA_ARGS"
 echo ""
 
-# Install dependencies if needed
+# Setup virtual environment if needed
+VENV_DIR="$PROJECT_ROOT/.venv"
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+# Activate and install dependencies
+source "$VENV_DIR/bin/activate"
 if ! python3 -c "import yaml, rich" 2>/dev/null; then
     echo "Installing dependencies..."
-    pip3 install --user -q -r ../requirements.txt 2>/dev/null || pip3 install --user -q pyyaml rich
+    pip install -q -r "$PROJECT_ROOT/requirements.txt"
 fi
 
 # Start containers if needed (--wait handles healthchecks)
@@ -34,12 +43,10 @@ if ! docker compose -f integration/docker/docker-compose.yml ps --status running
     docker compose -f integration/docker/docker-compose.yml up -d --wait
 fi
 
-# Run from project root
-cd ..
-
 echo "Running: python3 -m db_sync_tool -f tests/integration/scenario/receiver/typo3/typo3_env.json --output $OUTPUT_MODE $EXTRA_ARGS"
 echo ""
 
+cd "$PROJECT_ROOT"
 python3 -m db_sync_tool \
     -f tests/integration/scenario/receiver/typo3/typo3_env.json \
     --output "$OUTPUT_MODE" \
