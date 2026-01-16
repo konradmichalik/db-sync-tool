@@ -1,0 +1,25 @@
+{
+  "type": "TYPO3",
+  "scripts": {
+    "before": "cd /var/www/html/tests/integration/fixtures/www1 && touch before_script_global.txt",
+    "after": "cd /var/www/html/tests/integration/fixtures/www1 && touch after_script_global.txt"
+  },
+  "target": {
+    "path": "/var/www/html/tests/integration/fixtures/www2/LocalConfiguration.php",
+    "after_dump": "/var/www/html/tests/integration/fixtures/www1/after_dump.sql",
+    "scripts": {
+      "before": "cd /var/www/html/tests/integration/fixtures/www2 && touch before_script.txt",
+      "after": "cd /var/www/html/tests/integration/fixtures/www2 && touch after_script.txt"
+    }
+  },
+  "origin": {
+    "scripts": {
+      "before": "cd /var/www/html/tests/integration/fixtures/www1 && touch before_script.txt",
+      "after": "cd /var/www/html/tests/integration/fixtures/www1 && touch after_script.txt"
+    },
+    "host": "www1",
+    "user": "user",
+    "password": "password",
+    "path": "/var/www/html/tests/integration/fixtures/www1/LocalConfiguration.php"
+  }
+}

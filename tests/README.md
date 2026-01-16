@@ -18,6 +18,7 @@ Full end-to-end tests with Docker containers.
 ```bash
 # Unit tests
 ./tests/run-unit-tests.sh -v                      # verbose
+./tests/run-unit-tests.sh --cov                   # with coverage
 ./tests/run-unit-tests.sh -k "injection"          # by name
 
 # Integration tests
@@ -35,16 +36,15 @@ tests/
 │   └── test_security.py     # 46 tests
 │
 ├── integration/             # Integration tests (Docker)
+│   ├── configs/             # Sync configurations (40+ scenarios)
+│   ├── docker/              # Docker infrastructure
+│   ├── fixtures/            # Framework configs (www1/, www2/)
 │   ├── conftest.py
 │   ├── test_features.py
 │   ├── test_frameworks.py
 │   ├── test_import_dump.py
 │   ├── test_special.py
 │   └── test_sync_modes.py   # 38 tests
-│
-├── configs/                 # Sync configurations (40+ scenarios)
-├── docker/                  # Docker infrastructure
-├── fixtures/                # Framework configs (www1/, www2/)
 │
 ├── run-unit-tests.sh        # Unit test runner
 ├── run-integration-tests.sh # Integration test runner
@@ -87,6 +87,6 @@ www1 (db1) ←─SSH─→ www2 (db2)
 ## CI/CD
 
 GitHub Actions runs:
-- **Unit tests**: Python 3.10, 3.11, 3.12, 3.13 (fast, parallel)
+- **Unit tests**: Python 3.10, 3.11, 3.12, 3.13 with coverage (fast, parallel)
 - **Integration tests**: Python 3.10-3.13 with Docker (full E2E)
 - **Lint**: ruff check and format

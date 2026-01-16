@@ -92,7 +92,7 @@ def test_named_hosts():
 def test_config_overwrite(run_sync):
     """Override configuration via --origin-path argument."""
     result = run_sync("www2", f"{CONFIGS}/overwrite/sync-www1-to-local.yml",
-                      ["--origin-path", "/var/www/html/tests/fixtures/www1/LocalConfiguration.php"])
+                      ["--origin-path", "/var/www/html/tests/integration/fixtures/www1/LocalConfiguration.php"])
     assert result.returncode == 0, result.stderr
     assert get_row_count("db2", "person") == 3
 

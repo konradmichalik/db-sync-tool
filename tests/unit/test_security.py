@@ -5,59 +5,16 @@ These tests verify that security measures implemented in Phase 1 work correctly:
 - SQL injection prevention via table name sanitization
 - Credential sanitization in logs
 
-Note: Functions are re-implemented locally to avoid circular import issues
-that occur with Python 3.14+ when importing the full module graph.
-The implementations match db_sync_tool/utility/helper.py and db_sync_tool/utility/mode.py.
+The security module has no dependencies on other project modules,
+allowing proper import and code coverage measurement.
 """
-import re
-import shlex
 import pytest
 
-
-# Re-implement the functions locally for isolated testing
-# This allows us to test the logic without circular import issues
-
-def quote_shell_arg(arg) -> str:
-    """
-    Local copy of quote_shell_arg for testing.
-    Original: db_sync_tool/utility/helper.py:17-27
-    """
-    if arg is None:
-        return "''"
-    return shlex.quote(str(arg))
-
-
-def sanitize_table_name(table: str) -> str:
-    """
-    Local copy of sanitize_table_name for testing.
-    Original: db_sync_tool/database/utility.py:26-45
-    """
-    if not table:
-        raise ValueError("Table name cannot be empty")
-    if not re.match(r'^[a-zA-Z0-9_$.-]+$', table):
-        raise ValueError(f"Invalid table name: {table}")
-    return f"`{table}`"
-
-
-def sanitize_command_for_logging(command: str) -> str:
-    """
-    Local copy of sanitize_command_for_logging for testing.
-    Original: db_sync_tool/utility/mode.py:15-42
-    """
-    patterns = [
-        (r"-p'[^']*'", "-p'***'"),
-        (r'-p"[^"]*"', '-p"***"'),
-        (r"-p[^\s'\"]+", "-p***"),
-        (r"SSHPASS='[^']*'", "SSHPASS='***'"),
-        (r'SSHPASS="[^"]*"', 'SSHPASS="***"'),
-        (r"SSHPASS=[^\s]+", "SSHPASS=***"),
-        (r"--defaults-file=[^\s]+", "--defaults-file=***"),
-        (r"echo '[A-Za-z0-9+/=]{20,}' \| base64", "echo '***' | base64"),
-    ]
-    sanitized = command
-    for pattern, replacement in patterns:
-        sanitized = re.sub(pattern, replacement, sanitized)
-    return sanitized
+from db_sync_tool.utility.security import (
+    quote_shell_arg,
+    sanitize_table_name,
+    sanitize_command_for_logging,
+)
 
 
 class TestQuoteShellArg:

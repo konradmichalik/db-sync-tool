@@ -34,8 +34,8 @@ def test_shell_arguments():
         "sh", "-c",
         "cd /var/www/html && PYTHONPATH=/var/www/html python3 -m db_sync_tool "
         "--type TYPO3 "
-        "--target-path /var/www/html/tests/fixtures/www2/LocalConfiguration.php "
-        "--origin-path /var/www/html/tests/fixtures/www1/LocalConfiguration.php "
+        "--target-path /var/www/html/tests/integration/fixtures/www2/LocalConfiguration.php "
+        "--origin-path /var/www/html/tests/integration/fixtures/www1/LocalConfiguration.php "
         "--origin-host www1 --origin-user user --origin-password password -y -m"
     ])
     assert result.returncode == 0, result.stderr
@@ -46,7 +46,7 @@ def test_shell_arguments():
 def test_keep_dump(run_sync):
     """Keep dump file locally with -kd flag."""
     result = run_sync("www2", f"{CONFIGS}/download/sync-www1-to-local.json",
-                      ["-kd", "/var/www/html/tests/fixtures/www2/download/", "-dn", "dump"])
+                      ["-kd", "/var/www/html/tests/integration/fixtures/www2/download/", "-dn", "dump"])
     assert result.returncode == 0, result.stderr
     assert file_exists_local("fixtures/www2/download/dump.sql.gz")
 
@@ -57,9 +57,9 @@ def test_cleanup_old_backups(run_sync):
     # Setup: Create dummy backup files inside container with write permissions for SSH user
     exec_in_container("www1", [
         "bash", "-c",
-        "mkdir -p /var/www/html/tests/fixtures/www1/database_backup && "
-        "touch /var/www/html/tests/fixtures/www1/database_backup/{1,2,3,4,5}.sql && "
-        "chmod 777 /var/www/html/tests/fixtures/www1/database_backup"
+        "mkdir -p /var/www/html/tests/integration/fixtures/www1/database_backup && "
+        "touch /var/www/html/tests/integration/fixtures/www1/database_backup/{1,2,3,4,5}.sql && "
+        "chmod 777 /var/www/html/tests/integration/fixtures/www1/database_backup"
     ])
 
     result = run_sync("www2", f"{CONFIGS}/cleanup/dump-www1-from-local.json", ["-dn", "test"])

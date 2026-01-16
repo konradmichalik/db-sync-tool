@@ -1,0 +1,11 @@
+{
+  "type": "TYPO3",
+  "target": {
+    "host": "www1",
+    "user": "user",
+    "password": "password",
+    "path": "/var/www/html/tests/integration/fixtures/www1/LocalConfiguration.php"
+  },
+  "origin": {
+  }
+}

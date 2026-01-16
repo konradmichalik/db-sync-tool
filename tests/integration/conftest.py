@@ -1,13 +1,16 @@
 """pytest fixtures for db-sync-tool integration tests."""
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 import pytest
 
+# Add integration directory to Python path for imports
 TESTS_DIR = Path(__file__).parent
+sys.path.insert(0, str(TESTS_DIR))
 DOCKER_COMPOSE = ["docker", "compose", "-f", str(TESTS_DIR / "docker" / "docker-compose.yml")]
-CONFIGS = "/var/www/html/tests/configs"
+CONFIGS = "/var/www/html/tests/integration/configs"
 
 
 def exec_in_container(container: str, cmd: list[str]) -> subprocess.CompletedProcess:
@@ -59,15 +62,15 @@ def reset_test_state(docker_up):
         for container in ["www1", "www2"]:
             exec_in_container(container, [
                 "sh", "-c",
-                "rm -rf /var/www/html/tests/fixtures/www1/database_backup "
-                "/var/www/html/tests/fixtures/www2/database_backup "
-                "/var/www/html/tests/fixtures/www1/download "
-                "/var/www/html/tests/fixtures/www2/download "
-                "/var/www/html/tests/fixtures/www1/before_script*.txt "
-                "/var/www/html/tests/fixtures/www1/after_script*.txt "
-                "/var/www/html/tests/fixtures/www2/before_script*.txt "
-                "/var/www/html/tests/fixtures/www2/after_script*.txt "
-                "/var/www/html/tests/fixtures/test.log 2>/dev/null || true"
+                "rm -rf /var/www/html/tests/integration/fixtures/www1/database_backup "
+                "/var/www/html/tests/integration/fixtures/www2/database_backup "
+                "/var/www/html/tests/integration/fixtures/www1/download "
+                "/var/www/html/tests/integration/fixtures/www2/download "
+                "/var/www/html/tests/integration/fixtures/www1/before_script*.txt "
+                "/var/www/html/tests/integration/fixtures/www1/after_script*.txt "
+                "/var/www/html/tests/integration/fixtures/www2/before_script*.txt "
+                "/var/www/html/tests/integration/fixtures/www2/after_script*.txt "
+                "/var/www/html/tests/integration/fixtures/test.log 2>/dev/null || true"
             ])
 
     def set_permissions():
@@ -75,8 +78,8 @@ def reset_test_state(docker_up):
         for container in ["www1", "www2"]:
             exec_in_container(container, [
                 "sh", "-c",
-                "chmod -R 777 /var/www/html/tests/fixtures/www1 "
-                "/var/www/html/tests/fixtures/www2 2>/dev/null || true"
+                "chmod -R 777 /var/www/html/tests/integration/fixtures/www1 "
+                "/var/www/html/tests/integration/fixtures/www2 2>/dev/null || true"
             ])
 
     # Reset databases

@@ -25,12 +25,12 @@ def test_import_local(run_sync):
     # Setup: Copy test dump inside container (avoids permission issues)
     exec_in_container("www2", [
         "sh", "-c",
-        "mkdir -p /var/www/html/tests/fixtures/www2/database_backup && "
-        "cp /var/www/html/tests/docker/dump/test.sql /var/www/html/tests/fixtures/www2/database_backup/test.sql"
+        "mkdir -p /var/www/html/tests/integration/fixtures/www2/database_backup && "
+        "cp /var/www/html/tests/integration/docker/dump/test.sql /var/www/html/tests/integration/fixtures/www2/database_backup/test.sql"
     ])
 
     result = run_sync("www2", f"{CONFIGS}/import_local/import-local.json",
-                      ["-i", "/var/www/html/tests/fixtures/www2/database_backup/test.sql"])
+                      ["-i", "/var/www/html/tests/integration/fixtures/www2/database_backup/test.sql"])
     assert result.returncode == 0, result.stderr
     assert get_row_count("db2", "person") == 3
 
@@ -41,11 +41,11 @@ def test_import_remote(run_sync):
     # Setup: Extract test dump inside container (avoids permission issues)
     exec_in_container("www1", [
         "sh", "-c",
-        "mkdir -p /var/www/html/tests/fixtures/www1/database_backup && "
-        "tar -xzf /var/www/html/tests/docker/dump/test.sql.tar.gz -C /var/www/html/tests/fixtures/www1/database_backup"
+        "mkdir -p /var/www/html/tests/integration/fixtures/www1/database_backup && "
+        "tar -xzf /var/www/html/tests/integration/docker/dump/test.sql.tar.gz -C /var/www/html/tests/integration/fixtures/www1/database_backup"
     ])
 
     result = run_sync("www2", f"{CONFIGS}/import_remote/import-www1-from-local.json",
-                      ["-i", "/var/www/html/tests/fixtures/www1/database_backup/test.sql"])
+                      ["-i", "/var/www/html/tests/integration/fixtures/www1/database_backup/test.sql"])
     assert result.returncode == 0, result.stderr
     assert get_row_count("db1", "person") == 3

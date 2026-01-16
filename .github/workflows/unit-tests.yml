@@ -24,9 +24,9 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Install pytest
-        run: pip install pytest
+      - name: Install pytest and coverage
+        run: pip install pytest pytest-cov
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         working-directory: tests
-        run: pytest unit/ -v --tb=short
+        run: pytest unit/ -v --tb=short --cov=db_sync_tool.utility.security --cov-report=term-missing

@@ -7,24 +7,11 @@ Helper script
 import shutil
 import os
 import re
-import shlex
 from pathlib import Path
 from typing import Any
 from db_sync_tool.utility import mode, system, output
+from db_sync_tool.utility.security import quote_shell_arg  # noqa: F401 (re-export)
 from db_sync_tool.remote import utility as remote_utility
-
-
-def quote_shell_arg(arg: Any) -> str:
-    """
-    Safely quote a string for use as a shell argument.
-    Prevents command injection by escaping special characters.
-
-    :param arg: String to quote
-    :return: Safely quoted string
-    """
-    if arg is None:
-        return "''"
-    return shlex.quote(str(arg))
 
 
 def clean_up() -> None:

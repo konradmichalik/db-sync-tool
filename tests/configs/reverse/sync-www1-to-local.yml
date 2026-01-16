@@ -1,8 +1,0 @@
-type: TYPO3
-target:
-    host: www1
-    user: user
-    password: password
-    path: /var/www/html/tests/fixtures/www1/LocalConfiguration.php
-origin:
-    path: /var/www/html/tests/fixtures/www2/LocalConfiguration.php
