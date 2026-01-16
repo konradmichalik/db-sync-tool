@@ -12,7 +12,6 @@
 set -e
 
 cd "$(dirname "$0")"
-PROJECT_ROOT="$(cd .. && pwd)"
 
 OUTPUT_MODE="${1:-interactive}"
 shift 2>/dev/null || true
@@ -23,35 +22,22 @@ echo "Mode: $OUTPUT_MODE"
 [ -n "$EXTRA_ARGS" ] && echo "Args: $EXTRA_ARGS"
 echo ""
 
-# Setup virtual environment if needed
-VENV_DIR="$PROJECT_ROOT/.venv"
-if [ ! -d "$VENV_DIR" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv "$VENV_DIR"
-fi
-
-# Activate and install dependencies
-source "$VENV_DIR/bin/activate"
-if ! python3 -c "import yaml, rich" 2>/dev/null; then
-    echo "Installing dependencies..."
-    pip install -q -r "$PROJECT_ROOT/requirements.txt"
-fi
-
-# Start containers if needed (--wait handles healthchecks)
+# Build and start containers if needed
 if ! docker compose -f integration/docker/docker-compose.yml ps --status running 2>/dev/null | grep -q "www1"; then
-    echo "Starting Docker containers..."
+    echo "Building and starting Docker containers..."
+    docker compose -f integration/docker/docker-compose.yml build
     docker compose -f integration/docker/docker-compose.yml up -d --wait
 fi
 
-CONFIG="$PROJECT_ROOT/tests/integration/configs/typo3_env/sync-www1-to-local.json"
-echo "Running: python3 -m db_sync_tool -f $CONFIG --output $OUTPUT_MODE $EXTRA_ARGS"
+# Config path inside container
+CONFIG="/var/www/html/tests/integration/configs/typo3_env/sync-www1-to-local.json"
+
+echo "Running inside container: db_sync_tool -f $CONFIG --output $OUTPUT_MODE $EXTRA_ARGS"
 echo ""
 
-cd "$PROJECT_ROOT"
-python3 -m db_sync_tool \
-    -f "$CONFIG" \
-    --output "$OUTPUT_MODE" \
-    $EXTRA_ARGS
+# Run inside www1 container using mounted source code
+docker compose -f integration/docker/docker-compose.yml exec -T www1 \
+    python3 -m db_sync_tool -f "$CONFIG" --output "$OUTPUT_MODE" -y $EXTRA_ARGS
 
 echo ""
 echo "Done."
