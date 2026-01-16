@@ -7,6 +7,7 @@ Parser script
 import sys
 import types
 from db_sync_tool.utility import mode, system, output, helper
+from db_sync_tool.utility.exceptions import ConfigError, FileAccessError, ValidationError
 from db_sync_tool.remote import client as remote_client
 
 
@@ -74,23 +75,11 @@ def get_database_configuration(client):
             # Laravel sync base
             _base = Framework.LARAVEL
         else:
-            sys.exit(
-                output.message(
-                    output.Subject.ERROR,
-                    f'Framework type not supported: {_type}',
-                    False
-                )
-            )
+            raise ConfigError(f'Framework type not supported: {_type}')
     elif 'db' in system.config['origin'] or 'db' in system.config['target']:
         _base = Framework.MANUAL
     else:
-        sys.exit(
-            output.message(
-                output.Subject.ERROR,
-                f'Missing framework type or database credentials',
-                False
-            )
-        )
+        raise ConfigError('Missing framework type or database credentials')
 
     sys.path.append('../recipes')
     _parser: types.ModuleType | None = None
@@ -164,13 +153,7 @@ def load_parser(client, parser):
 
     # Check only if database configuration is a file
     if not helper.check_file_exists(client, _path) and _path[-1] != '/':
-        sys.exit(
-            output.message(
-                output.Subject.ERROR,
-                f'Database configuration for {client} not found: {_path}',
-                False
-            )
-        )
+        raise FileAccessError(f'Database configuration for {client} not found: {_path}')
     parser.check_configuration(client)
 
 
@@ -189,20 +172,12 @@ def validate_database_credentials(client):
 
     for _key in _db_credential_keys:
         if _key not in system.config[client]['db']:
-            sys.exit(
-                output.message(
-                    output.Subject.ERROR,
-                    f'Missing database credential "{_key}" for {client} client',
-                    False
-                )
+            raise ValidationError(
+                f'Missing database credential "{_key}" for {client} client'
             )
         if system.config[client]['db'][_key] is None or system.config[client]['db'][_key] == '':
-            sys.exit(
-                output.message(
-                    output.Subject.ERROR,
-                    f'Missing database credential "{_key}" for {client} client',
-                    False
-                )
+            raise ValidationError(
+                f'Missing database credential "{_key}" for {client} client'
             )
         else:
             output.message(
