@@ -43,12 +43,13 @@ if ! docker compose -f integration/docker/docker-compose.yml ps --status running
     docker compose -f integration/docker/docker-compose.yml up -d --wait
 fi
 
-echo "Running: python3 -m db_sync_tool -f tests/integration/scenario/receiver/typo3/typo3_env.json --output $OUTPUT_MODE $EXTRA_ARGS"
+CONFIG="$PROJECT_ROOT/tests/integration/scenario/receiver/typo3/typo3_env.json"
+echo "Running: python3 -m db_sync_tool -f $CONFIG --output $OUTPUT_MODE $EXTRA_ARGS"
 echo ""
 
 cd "$PROJECT_ROOT"
 python3 -m db_sync_tool \
-    -f tests/integration/scenario/receiver/typo3/typo3_env.json \
+    -f "$CONFIG" \
     --output "$OUTPUT_MODE" \
     $EXTRA_ARGS
 
