@@ -21,7 +21,7 @@ Modern (recommended):
 import warnings
 import paramiko
 from db_sync_tool.utility import mode, system, helper, output
-from db_sync_tool.utility.exceptions import RemoteError
+from db_sync_tool.utility.exceptions import DbSyncError
 
 # Suppress paramiko warnings about unknown host keys
 warnings.filterwarnings("ignore", message="Unknown.*host key", module="paramiko")
@@ -209,7 +209,7 @@ def load_ssh_client(ssh):
         _authentication_method = f'{output.CliFormat.BLACK} - ' \
                                  f'(authentication: key){output.CliFormat.ENDC}'
     else:
-        raise RemoteError(
+        raise DbSyncError(
             'Missing SSH authentication. Neither ssh key nor ssh password given.'
         )
 
@@ -230,7 +230,7 @@ def load_ssh_client(ssh):
         _ssh_client.get_transport().set_keepalive(60)
 
     except paramiko.ssh_exception.AuthenticationException:
-        raise RemoteError(f'SSH authentication for {_host_name} failed') from None
+        raise DbSyncError(f'SSH authentication for {_host_name} failed') from None
 
     output.message(
         output.host_to_subject(ssh),
