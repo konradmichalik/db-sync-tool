@@ -1,5 +1,6 @@
 #!/bin/bash
-# Run db-sync-tool integration tests
+# Run db-sync-tool integration tests (require Docker)
+# For unit tests only, use: ./run_unit_tests.sh
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -23,6 +24,7 @@ if ! docker compose ps --status running 2>/dev/null | grep -q "www1"; then
     sleep 5
 fi
 
-# Run pytest
+# Run integration tests
 cd "$SCRIPT_DIR"
-pytest "$@"
+echo "Running integration tests..."
+pytest integration/ "$@"
