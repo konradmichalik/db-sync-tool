@@ -12,6 +12,7 @@ import sys
 sys.path.append(os.getcwd())
 from db_sync_tool import sync
 from db_sync_tool.utility import helper
+from db_sync_tool.utility.console import init_output_manager
 
 
 def main(args=None):
@@ -24,11 +25,21 @@ def main(args=None):
         args = {}
 
     args = get_arguments(args)
+
+    # Initialize output manager with format settings
+    # --quiet flag overrides --output setting
+    output_format = 'quiet' if args.quiet else args.output
+    init_output_manager(
+        format=output_format,
+        verbose=args.verbose,
+        mute=args.mute or args.quiet
+    )
+
     sync.Sync(
         config_file=args.config_file,
         verbose=args.verbose,
         yes=args.yes,
-        mute=args.mute,
+        mute=args.mute or args.quiet,
         dry_run=args.dry_run,
         import_file=args.import_file,
         dump_name=args.dump_name,
@@ -253,6 +264,16 @@ def get_arguments(args):
                         help='Additional mysqldump options for creating the database dump, e.g. --additional-mysqldump-options="--where="deleted=0"',
                         required=False,
                         type=str)
+    parser.add_argument('--output',
+                        help='Output format: interactive (default), ci, json, quiet',
+                        required=False,
+                        choices=['interactive', 'ci', 'json', 'quiet'],
+                        default='interactive',
+                        type=str)
+    parser.add_argument('-q', '--quiet',
+                        help='Suppress all output except errors (shorthand for --output=quiet)',
+                        required=False,
+                        action='store_true')
 
     return parser.parse_args(helper.dict_to_args(args))
 
