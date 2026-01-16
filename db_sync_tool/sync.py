@@ -3,7 +3,9 @@
 Sync script
 """
 
-from db_sync_tool.utility import system, helper, info
+import sys
+from db_sync_tool.utility import system, helper, info, output
+from db_sync_tool.utility.exceptions import DbSyncError
 from db_sync_tool.database import process, utility as database_utility
 from db_sync_tool.remote import transfer, client as remote_client
 
@@ -76,6 +78,9 @@ class Sync:
             transfer.transfer_origin_database_dump()
             process.import_database_dump()
             helper.clean_up()
+        except DbSyncError as e:
+            output.message(output.Subject.ERROR, str(e), do_print=True)
+            sys.exit(1)
         finally:
             # Always clean up sensitive credential files, even on error
             database_utility.cleanup_mysql_config_files()
