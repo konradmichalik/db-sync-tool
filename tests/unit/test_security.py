@@ -5,7 +5,7 @@ These tests verify that security measures implemented in Phase 1 work correctly:
 - SQL injection prevention via table name sanitization
 - Credential sanitization in logs
 
-The security module has no dependencies on other project modules,
+The security module has minimal dependencies,
 allowing proper import and code coverage measurement.
 """
 import pytest
@@ -15,6 +15,7 @@ from db_sync_tool.utility.security import (
     sanitize_table_name,
     sanitize_command_for_logging,
 )
+from db_sync_tool.utility.exceptions import ValidationError
 
 
 class TestQuoteShellArg:
@@ -157,68 +158,68 @@ class TestSanitizeTableName:
 
     @pytest.mark.unit
     def test_empty_table_name(self):
-        """Empty table names should raise ValueError."""
-        with pytest.raises(ValueError, match="cannot be empty"):
+        """Empty table names should raise ValidationError."""
+        with pytest.raises(ValidationError, match="cannot be empty"):
             sanitize_table_name("")
 
     @pytest.mark.unit
     def test_sql_injection_semicolon(self):
         """SQL injection with semicolon should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users; DROP TABLE users;--")
 
     @pytest.mark.unit
     def test_sql_injection_comment(self):
         """SQL injection with comment and space should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users-- comment")
 
     @pytest.mark.unit
     def test_sql_injection_quote(self):
         """SQL injection with quote should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users' OR '1'='1")
 
     @pytest.mark.unit
     def test_sql_injection_backtick(self):
         """SQL injection with backtick should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users` OR `1`=`1")
 
     @pytest.mark.unit
     def test_sql_injection_union(self):
         """SQL injection with UNION should be rejected (contains space)."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users UNION SELECT * FROM passwords")
 
     @pytest.mark.unit
     def test_sql_injection_parentheses(self):
         """SQL injection with parentheses should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users()")
 
     @pytest.mark.unit
     def test_newline_injection(self):
         """Newlines in table names should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users\nDROP TABLE users")
 
     @pytest.mark.unit
     def test_null_byte_injection(self):
         """Null bytes in table names should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("users\x00malicious")
 
     @pytest.mark.unit
     def test_unicode_characters(self):
         """Unicode characters should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("tаble")  # Cyrillic 'а' instead of Latin 'a'
 
     @pytest.mark.unit
     def test_whitespace(self):
         """Whitespace in table names should be rejected."""
-        with pytest.raises(ValueError, match="Invalid table name"):
+        with pytest.raises(ValidationError, match="Invalid table name"):
             sanitize_table_name("user table")
 
 

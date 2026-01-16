@@ -9,7 +9,7 @@ various configuration file formats used by popular PHP frameworks:
 - Symfony (.env with DATABASE_URL)
 - Drupal (Drush JSON output)
 
-The parsing module has no dependencies on other project modules,
+The parsing module has minimal dependencies,
 allowing proper import and code coverage measurement.
 """
 import pytest
@@ -19,6 +19,7 @@ from db_sync_tool.recipes.parsing import (
     parse_drupal_drush_credentials,
     parse_typo3_database_credentials,
 )
+from db_sync_tool.utility.exceptions import ParsingError
 
 
 class TestParseSymfonyDatabaseUrl:
@@ -120,26 +121,26 @@ class TestParseSymfonyDatabaseUrl:
 
     @pytest.mark.unit
     def test_parse_invalid_url_raises_error(self):
-        """Invalid DATABASE_URL raises ValueError."""
-        with pytest.raises(ValueError, match="Mismatch"):
+        """Invalid DATABASE_URL raises ParsingError."""
+        with pytest.raises(ParsingError, match="Mismatch"):
             parse_symfony_database_url("INVALID_FORMAT")
 
     @pytest.mark.unit
     def test_parse_empty_url_raises_error(self):
-        """Empty DATABASE_URL raises ValueError."""
-        with pytest.raises(ValueError, match="Mismatch"):
+        """Empty DATABASE_URL raises ParsingError."""
+        with pytest.raises(ParsingError, match="Mismatch"):
             parse_symfony_database_url("")
 
     @pytest.mark.unit
     def test_parse_url_missing_port_raises_error(self):
-        """DATABASE_URL without port raises ValueError."""
-        with pytest.raises(ValueError, match="Mismatch"):
+        """DATABASE_URL without port raises ParsingError."""
+        with pytest.raises(ParsingError, match="Mismatch"):
             parse_symfony_database_url("DATABASE_URL=mysql://user:pass@host/db")
 
     @pytest.mark.unit
     def test_parse_url_missing_password_raises_error(self):
-        """DATABASE_URL without password raises ValueError."""
-        with pytest.raises(ValueError, match="Mismatch"):
+        """DATABASE_URL without password raises ParsingError."""
+        with pytest.raises(ParsingError, match="Mismatch"):
             parse_symfony_database_url("DATABASE_URL=mysql://user@host:3306/db")
 
 
