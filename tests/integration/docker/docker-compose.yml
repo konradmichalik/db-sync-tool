@@ -1,0 +1,86 @@
+services:
+    www1:
+        build: .
+        volumes:
+            - ../../../:/var/www/html/
+        networks:
+            - db-sync-tool
+            - db1
+        ports:
+            - "2211:22"
+        depends_on:
+            db1:
+                condition: service_healthy
+
+    www2:
+        build: .
+        volumes:
+            - ../../../:/var/www/html/
+        networks:
+            - db-sync-tool
+            - db2
+        ports:
+            - "2212:22"
+        depends_on:
+            db2:
+                condition: service_healthy
+
+    proxy:
+        build: .
+        volumes:
+            - ../../../:/var/www/html/
+        networks:
+            - db-sync-tool
+        ports:
+            - "2213:22"
+
+    db1:
+        image: mariadb:10.11
+        ports:
+            - "33861:3306"
+        command: --skip-ssl
+        environment:
+            MARIADB_DATABASE: db
+            MARIADB_USER: db
+            MARIADB_PASSWORD: db
+            MARIADB_ROOT_PASSWORD: db
+        volumes:
+            - ./initdb:/docker-entrypoint-initdb.d
+            - ./dump/:/tmp/dump/
+        networks:
+            - db-sync-tool
+            - db1
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            start_period: 10s
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    db2:
+        image: mariadb:10.11
+        ports:
+            - "33862:3306"
+        command: --skip-ssl
+        environment:
+            MARIADB_DATABASE: db
+            MARIADB_USER: db
+            MARIADB_PASSWORD: db
+            MARIADB_ROOT_PASSWORD: db
+        volumes:
+            - ./initdb:/docker-entrypoint-initdb.d
+            - ./dump/:/tmp/dump/
+        networks:
+            - db-sync-tool
+            - db2
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            start_period: 10s
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+networks:
+    db-sync-tool:
+    db1:
+    db2:

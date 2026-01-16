@@ -1,0 +1,32 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: Install pytest and coverage
+        run: pip install pytest pytest-cov
+
+      - name: Run unit tests with coverage
+        working-directory: tests
+        run: pytest unit/ -v --tb=short --cov=db_sync_tool.utility.security --cov=db_sync_tool.utility.pure --cov=db_sync_tool.utility.config --cov-report=term-missing

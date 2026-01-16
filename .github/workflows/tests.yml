@@ -30,11 +30,11 @@ jobs:
           pip install pytest pytest-timeout
 
       - name: Build Docker images
-        working-directory: tests/docker
+        working-directory: tests/integration/docker
         run: docker compose build
 
       - name: Start containers
-        working-directory: tests/docker
+        working-directory: tests/integration/docker
         run: docker compose up -d --wait
 
       - name: Wait for MariaDB initialization
@@ -42,14 +42,14 @@ jobs:
 
       - name: Run integration tests
         working-directory: tests
-        run: pytest -v --timeout=120
+        run: pytest integration/ -v --timeout=120
 
       - name: Show container logs on failure
         if: failure()
-        working-directory: tests/docker
+        working-directory: tests/integration/docker
         run: docker compose logs
 
       - name: Stop containers
         if: always()
-        working-directory: tests/docker
+        working-directory: tests/integration/docker
         run: docker compose down -v

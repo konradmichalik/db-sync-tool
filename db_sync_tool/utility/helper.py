@@ -6,25 +6,13 @@ Helper script
 
 import shutil
 import os
-import re
-import shlex
-from pathlib import Path
-from typing import Any
 from db_sync_tool.utility import mode, system, output
+from db_sync_tool.utility.security import quote_shell_arg  # noqa: F401 (re-export)
+from db_sync_tool.utility.pure import (  # noqa: F401 (re-export)
+    parse_version, get_file_from_path, remove_surrounding_quotes,
+    clean_db_config, dict_to_args, remove_multiple_elements_from_string
+)
 from db_sync_tool.remote import utility as remote_utility
-
-
-def quote_shell_arg(arg: Any) -> str:
-    """
-    Safely quote a string for use as a shell argument.
-    Prevents command injection by escaping special characters.
-
-    :param arg: String to quote
-    :return: Safely quoted string
-    """
-    if arg is None:
-        return "''"
-    return shlex.quote(str(arg))
 
 
 def clean_up() -> None:
@@ -179,21 +167,6 @@ def create_local_temporary_data_dir() -> None:
         system.create_secure_temp_dir(system.default_local_sync_path)
 
 
-def dict_to_args(data: dict[str, Any]) -> list[str] | None:
-    """
-    Convert a dictionary to an args list
-    :param data: Dictionary to convert
-    :return: List of arguments or None if empty
-    """
-    args = []
-    for key, val in data.items():
-        if val is True:
-            args.append(f'--{key}')
-        elif val is not False and val is not None:
-            args.extend([f'--{key}', str(val)])
-    return args or None
-
-
 def check_file_exists(client: str, path: str) -> bool:
     """
     Check if a file exists
@@ -277,33 +250,6 @@ def check_sshpass_version() -> bool | None:
         return True
 
 
-def parse_version(version_output: str | None) -> str | None:
-    """
-    Parse version out of console output
-    https://stackoverflow.com/a/60730346
-    :param version_output: Console output string
-    :return: Version string or None
-    """
-    if not version_output:
-        return None
-    _version_pattern = r'\d+(=?\.(\d+(=?\.(\d+)*)*)*)*'
-    _regex_matcher = re.compile(_version_pattern)
-    _version = _regex_matcher.search(version_output)
-    if _version:
-        return _version.group(0)
-    else:
-        return None
-
-
-def get_file_from_path(path: str) -> str:
-    """
-    Trims a path string to retrieve the file
-    :param path: File path
-    :return: File name
-    """
-    return Path(path).name
-
-
 def confirm(prompt: str | None = None, resp: bool = False) -> bool:
     """
     https://code.activestate.com/recipes/541096-prompt-the-user-for-confirmation/
@@ -338,34 +284,6 @@ def confirm(prompt: str | None = None, resp: bool = False) -> bool:
         if ans in ('y', 'n'):
             return ans == 'y'
         print('Please enter y or n.')
-
-
-def clean_db_config(config: dict[str, Any]) -> dict[str, Any]:
-    """
-    Iterates over all entries of a dictionary and removes enclosing inverted commas
-    from the values, if present.
-
-    :param config: The dictionary to be edited
-    :return: A new dictionary with adjusted values
-    """
-    # Iterate over all entries in the dictionary and use the inverted comma function
-    return {key: remove_surrounding_quotes(value) for key, value in config.items()}
-
-
-def remove_surrounding_quotes(s: Any) -> Any:
-    """
-    Removes the enclosing inverted commas (single or double),
-    if there are quotes at both the beginning and the end of the string.
-
-    :param s: The string to be checked
-    :return: The string without enclosing quotes, if available
-    """
-    if isinstance(s, str):
-        if s.startswith('"') and s.endswith('"'):
-            return s[1:-1]
-        elif s.startswith("'") and s.endswith("'"):
-            return s[1:-1]
-    return s
 
 
 def run_sed_command(client: str, command: str) -> str:

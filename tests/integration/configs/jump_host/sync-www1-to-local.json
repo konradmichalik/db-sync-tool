@@ -1,0 +1,17 @@
+{
+  "type": "TYPO3",
+  "target": {
+    "path": "/var/www/html/tests/integration/fixtures/www2/LocalConfiguration.php"
+  },
+  "origin": {
+    "host": "www1",
+    "user": "user",
+    "password": "password",
+    "jump_host": {
+      "host": "proxy",
+      "private": "172.19.0.2",
+      "password": "password"
+    },
+    "path": "/var/www/html/tests/integration/fixtures/www1/LocalConfiguration.php"
+  }
+}

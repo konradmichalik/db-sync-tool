@@ -113,7 +113,7 @@ celerybeat.pid
 
 # Environments
 .env
-!tests/fixtures/**/.env
+!tests/integration/fixtures/**/.env
 .venv
 env/
 venv/

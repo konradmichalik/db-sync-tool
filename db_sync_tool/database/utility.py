@@ -11,6 +11,7 @@ import os
 import secrets
 import base64
 from db_sync_tool.utility import mode, system, helper, output
+from db_sync_tool.utility.security import sanitize_table_name  # noqa: F401 (re-export)
 
 database_dump_file_name: str | None = None
 
@@ -21,28 +22,6 @@ _mysql_config_files: dict[str, str] = {}
 class DatabaseSystem:
     MYSQL = 'MySQL'
     MARIADB = 'MariaDB'
-
-
-def sanitize_table_name(table: str) -> str:
-    """
-    Validate and sanitize a table name to prevent SQL injection.
-    MySQL table names can contain alphanumeric chars, underscores, and dollar signs.
-    They can also contain hyphens and dots in quoted identifiers.
-
-    :param table: String table name
-    :return: String sanitized and backtick-quoted table name
-    :raises ValueError: If table name contains invalid characters
-    """
-    if not table:
-        raise ValueError("Table name cannot be empty")
-
-    # Allow alphanumeric, underscore, hyphen, dot, dollar sign
-    # These are valid MySQL identifier characters
-    if not re.match(r'^[a-zA-Z0-9_$.-]+$', table):
-        raise ValueError(f"Invalid table name: {table}")
-
-    # Return backtick-quoted identifier (safe for MySQL)
-    return f"`{table}`"
 
 
 def create_mysql_config_file(client: str) -> str:
