@@ -4,7 +4,6 @@
 Transfer script
 """
 
-import sys
 from db_sync_tool.utility import mode, system, helper, output
 from db_sync_tool.database import utility as database_utility
 from db_sync_tool.remote import utility, client, rsync

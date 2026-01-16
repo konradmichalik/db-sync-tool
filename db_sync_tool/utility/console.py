@@ -246,8 +246,6 @@ class OutputManager:
 
         self._current_step = StepInfo(name=message, subject=subject, remote=remote)
         prefix = self._format_prefix(subject, remote)
-        style = self._get_style(subject)
-        debug_tag = "[dim][DEBUG][/dim]" if debug else ""
 
         def ci() -> None:
             print(f"[INFO] {prefix} {message}")

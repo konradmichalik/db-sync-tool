@@ -7,7 +7,7 @@ This module provides the legacy output interface using Rich.
 For new code, prefer using the console module directly.
 """
 from db_sync_tool.utility import log, mode, system
-from db_sync_tool.utility.console import get_output_manager, OutputFormat
+from db_sync_tool.utility.console import get_output_manager
 
 
 class CliFormat:
