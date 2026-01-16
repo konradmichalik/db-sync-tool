@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
-from db_sync_tool.utility.exceptions import ConfigError, FileAccessError
+from db_sync_tool.utility.exceptions import ConfigError
 from db_sync_tool.remote import utility as remote_utility
 
 #
@@ -123,7 +123,7 @@ def get_configuration(host_config, args = {}):
                     True
                 )
         else:
-            raise FileAccessError(
+            raise ConfigError(
                 f'Local configuration not found: {config["config_file_path"]}'
             )
 
@@ -295,7 +295,7 @@ def check_authorization(client):
         elif 'ssh_key' in config[client]:
             _ssh_key = config[client]['ssh_key']
             if not os.path.isfile(_ssh_key):
-                raise FileAccessError(f'SSH {client} private key not found: {_ssh_key}')
+                raise ConfigError(f'SSH {client} private key not found: {_ssh_key}')
         elif 'password' in config[client]:
             config[client]['password'] = config[client]['password']
         elif remote_utility.check_keys_from_ssh_agent():
@@ -523,7 +523,7 @@ def link_configuration_with_hosts():
                     else:
                         raise ConfigError(f'Missing link hosts for {config["link_hosts"]}')
         else:
-            raise FileAccessError(f'Local host file not found: {config["link_hosts"]}')
+            raise ConfigError(f'Local host file not found: {config["link_hosts"]}')
 
 
 def check_config_dict_key(client, key):

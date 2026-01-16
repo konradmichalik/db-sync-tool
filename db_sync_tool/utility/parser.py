@@ -7,7 +7,7 @@ Parser script
 import sys
 import types
 from db_sync_tool.utility import mode, system, output, helper
-from db_sync_tool.utility.exceptions import ConfigError, FileAccessError, ValidationError
+from db_sync_tool.utility.exceptions import ConfigError, ValidationError
 from db_sync_tool.remote import client as remote_client
 
 
@@ -153,7 +153,7 @@ def load_parser(client, parser):
 
     # Check only if database configuration is a file
     if not helper.check_file_exists(client, _path) and _path[-1] != '/':
-        raise FileAccessError(f'Database configuration for {client} not found: {_path}')
+        raise ConfigError(f'Database configuration for {client} not found: {_path}')
     parser.check_configuration(client)
 
 

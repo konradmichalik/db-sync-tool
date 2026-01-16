@@ -7,7 +7,7 @@ Mode script
 import subprocess
 
 from db_sync_tool.utility import system, output, helper
-from db_sync_tool.utility.exceptions import CommandError, RemoteError
+from db_sync_tool.utility.exceptions import DbSyncError
 from db_sync_tool.utility.security import sanitize_command_for_logging  # noqa: F401 (re-export)
 from db_sync_tool.remote import system as remote_system
 
@@ -248,7 +248,7 @@ def run_command(command: str, client: str, force_output: bool = False,
 
         if res.wait() != 0 and err.decode() != '' and not allow_fail:
             helper.run_script(script='error')
-            raise CommandError(err.decode())
+            raise DbSyncError(err.decode())
 
         if force_output:
             return out.decode().strip()
@@ -264,7 +264,7 @@ def check_for_protection() -> None:
                      SyncMode.SYNC_REMOTE, SyncMode.IMPORT_LOCAL, SyncMode.IMPORT_REMOTE) and \
             'protect' in system.config[Client.TARGET]:
         _host = helper.get_ssh_host_name(Client.TARGET)
-        raise RemoteError(
+        raise DbSyncError(
             f'The host {_host} is protected against the import of a database dump. '
             'Please check synchronisation target or adjust the host configuration.'
         )
