@@ -82,58 +82,39 @@ def refresh_typed_config() -> None:
     _typed_config = SyncConfig.from_dict(config)
 
 
-def set_use_sshpass(value: bool) -> None:
+def _set_config_value(key: str, value, client: str | None = None) -> None:
     """
-    Set use_sshpass configuration value.
+    Set a configuration value and refresh typed config.
 
-    :param value: Boolean value
+    :param key: Configuration key
+    :param value: Value to set
+    :param client: Optional client identifier for nested config
     """
-    config['use_sshpass'] = value
-    refresh_typed_config()
-
-
-def set_is_same_client(value: bool) -> None:
-    """
-    Set is_same_client configuration value.
-
-    :param value: Boolean value
-    """
-    config['is_same_client'] = value
+    if client:
+        config[client][key] = value
+    else:
+        config[key] = value
     refresh_typed_config()
 
 
 def set_database_config(client: str, db_config: dict) -> None:
-    """
-    Set database configuration for a client.
-
-    :param client: Client identifier ('origin' or 'target')
-    :param db_config: Database configuration dictionary
-    """
-    if 'db' not in config[client]:
-        config[client]['db'] = {}
-    config[client]['db'] = db_config
-    refresh_typed_config()
-
-
-def ensure_client_db(client: str) -> None:
-    """
-    Ensure a client has a 'db' dict initialized.
-
-    :param client: Client identifier ('origin' or 'target')
-    """
-    if 'db' not in config[client]:
-        config[client]['db'] = {}
-    refresh_typed_config()
+    """Set database configuration for a client."""
+    _set_config_value('db', db_config, client)
 
 
 def set_framework_type(type_name: str) -> None:
-    """
-    Set the framework type configuration value.
+    """Set the framework type."""
+    _set_config_value('type', type_name)
 
-    :param type_name: Framework type (TYPO3, Symfony, etc.)
-    """
-    config['type'] = type_name
-    refresh_typed_config()
+
+def set_is_same_client(value: bool) -> None:
+    """Set is_same_client flag."""
+    _set_config_value('is_same_client', value)
+
+
+def set_use_sshpass(value: bool) -> None:
+    """Set use_sshpass flag."""
+    _set_config_value('use_sshpass', value)
 
 
 #
