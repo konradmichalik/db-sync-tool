@@ -66,7 +66,9 @@ def remove_target_database_dump():
     if system.config['keep_dump']:
         helper.create_local_temporary_data_dir()
         # Copy the .gz file (streaming compression means only .gz exists)
-        _keep_dump_path = system.default_local_sync_path + database_utility.database_dump_file_name + '.gz'
+        # database_dump_file_name is guaranteed to be set at this point
+        _dump_name = database_utility.database_dump_file_name or ''
+        _keep_dump_path = system.default_local_sync_path + _dump_name + '.gz'
         mode.run_command(
             helper.get_command('target',
                                'cp') + ' ' + _gz_file_path + ' ' + _keep_dump_path,

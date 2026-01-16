@@ -74,8 +74,9 @@ def get_database_parameter(client, name, file):
     :param file: String
     :return:
     """
-    return mode.run_command(
+    result = mode.run_command(
         helper.get_command(client, 'sed') + f' -n -e \'/{name}/ s/.*\\: *//p\' {file}',
         client,
         True
-    ).replace('\n', '')
+    )
+    return result.replace('\n', '') if result else ''

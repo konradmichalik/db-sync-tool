@@ -139,10 +139,11 @@ def run_database_command(client: str, command: str, force_database_name: bool = 
     # - Backticks need escaping (shell command substitution)
     _safe_command = command.replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`')
 
-    return mode.run_command(
+    result = mode.run_command(
         helper.get_command(client, 'mysql') + ' ' + generate_mysql_credentials(
             client) + _database_name + ' -e "' + _safe_command + '"',
         client, True)
+    return result if result else ''
 
 
 def run_sql_batch_with_fk_disabled(client: str, statements: list[str]) -> None:
@@ -222,7 +223,7 @@ def generate_ignore_database_tables() -> str:
     if 'ignore_table' in system.config:
         system.config['ignore_tables'] = system.config['ignore_table']
 
-    _ignore_tables = []
+    _ignore_tables: list[str] = []
     if 'ignore_tables' in system.config:
         for table in system.config['ignore_tables']:
             if '*' in table:
@@ -351,6 +352,8 @@ def get_dump_file_path(client: str) -> str:
     :param client: Client identifier
     :return: Path to dump file
     """
+    if database_dump_file_name is None:
+        raise RuntimeError('database_dump_file_name not initialized')
     return helper.get_dump_dir(client) + database_dump_file_name
 
 
@@ -439,7 +442,8 @@ def get_database_version(client: str) -> tuple[str | None, str | None]:
         _database_version = run_database_command(client, 'SELECT VERSION();').splitlines()[1]
         _database_system = DatabaseSystem.MYSQL
 
-        _version_number = re.search('(\d+\.)?(\d+\.)?(\*|\d+)', _database_version).group()
+        _version_match = re.search(r'(\d+\.)?(\d+\.)?(\*|\d+)', _database_version)
+        _version_number = _version_match.group() if _version_match else None
 
         if DatabaseSystem.MARIADB.lower() in _database_version.lower():
             _database_system = DatabaseSystem.MARIADB

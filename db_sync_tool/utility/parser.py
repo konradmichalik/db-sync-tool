@@ -5,6 +5,7 @@ Parser script
 """
 
 import sys
+import types
 from db_sync_tool.utility import mode, system, output, helper
 from db_sync_tool.remote import client as remote_client
 
@@ -92,6 +93,7 @@ def get_database_configuration(client):
         )
 
     sys.path.append('../recipes')
+    _parser: types.ModuleType | None = None
     if _base == Framework.TYPO3:
         # Import TYPO3 parser
         from ..recipes import typo3

@@ -32,8 +32,9 @@ def get_database_parameter(client, name, file):
     :param file: String
     :return:
     """
-    return mode.run_command(
+    result = mode.run_command(
         helper.get_command(client, 'grep') + f' {name} {file} | cut -d \'=\' -f2',
         client,
         True
-    ).replace('\n', '')
+    )
+    return result.replace('\n', '') if result else ''

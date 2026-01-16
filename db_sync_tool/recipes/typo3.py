@@ -26,6 +26,8 @@ def check_configuration(client):
             client,
             True
         )
+        if not stdout:
+            raise RuntimeError('Failed to read TYPO3 configuration')
 
         _db_config = parse_database_credentials(json.loads(stdout)['DB'])
     elif '.env' in _path:

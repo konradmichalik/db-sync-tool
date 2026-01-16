@@ -42,9 +42,11 @@ pipx run ruff format db_sync_tool/
 ### Static Analysis
 
 ```bash
-# Type checking (optional)
+# Type checking
 pipx run mypy db_sync_tool/
 ```
+
+Type checking runs automatically in CI on every pull request.
 
 ## Testing
 
@@ -144,6 +146,7 @@ All pull requests are automatically checked by GitHub Actions:
 - **Unit Tests**: Python 3.10, 3.11, 3.12, 3.13 with coverage
 - **Integration Tests**: Full E2E tests with Docker
 - **Linting**: ruff check and format
+- **Type Checking**: mypy static analysis
 
 Please ensure all checks pass before requesting a review.
 
