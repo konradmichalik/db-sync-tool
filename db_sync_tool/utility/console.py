@@ -183,9 +183,10 @@ class OutputManager:
         json_data: dict[str, Any] | None = None,
         ci_handler: Callable[[], None] | None = None,
         interactive_handler: Callable[[], None] | None = None,
+        force: bool = False,
     ) -> bool:
         """Route output to appropriate handler based on format. Returns True if handled."""
-        if self.format == OutputFormat.QUIET:
+        if self.format == OutputFormat.QUIET and not force:
             return True
         if self.format == OutputFormat.JSON:
             self._json_output(event, message=message, **(json_data or {}))
@@ -357,7 +358,7 @@ class OutputManager:
                 self._print_rich(f"  [dim]{esc(str(exception))}[/dim]", highlight=False)
 
         exc_str = str(exception) if exception else None
-        self._route_output("error", message, {"exception": exc_str}, ci, interactive)
+        self._route_output("error", message, {"exception": exc_str}, ci, interactive, force=True)
 
     def warning(self, message: str) -> None:
         """Display a warning message."""
