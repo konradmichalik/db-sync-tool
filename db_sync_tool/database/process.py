@@ -43,20 +43,20 @@ def create_origin_database_dump():
                     semantic_version.Version(_database_version[1]) < semantic_version.Version('5.6.0'):
                 _mysqldump_options = '--single-transaction --quick --extended-insert '
 
+        cfg = system.get_typed_config()
+
         # Adding additional where clause to sync only selected rows
-        if system.config['where'] != '':
-            _where = system.config['where']
-            _mysqldump_options = _mysqldump_options + f'--where=\'{_where}\' '
+        if cfg.where != '':
+            _mysqldump_options = _mysqldump_options + f'--where=\'{cfg.where}\' '
 
         # Adding additional mysqldump options
         # see https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html#mysqldump-option-summary
-        if system.config['additional_mysqldump_options'] != '':
-            _additional = system.config['additional_mysqldump_options']
-            _mysqldump_options = _mysqldump_options + f'{_additional} '
+        if cfg.additional_mysqldump_options != '':
+            _mysqldump_options = _mysqldump_options + f'{cfg.additional_mysqldump_options} '
 
         # Run mysql dump command
         # Note: --defaults-file MUST be the first option for MySQL/MariaDB
-        _db_name = quote_shell_arg(system.config[mode.Client.ORIGIN]['db']['name'])
+        _db_name = quote_shell_arg(cfg.origin.db.name)
         _safe_dump_path = quote_shell_arg(_dump_file_path)
 
         # Get table names and shell-quote them safely (strip backticks first)
@@ -89,9 +89,11 @@ def import_database_dump():
     Importing the selected database dump file
     :return:
     """
+    cfg = system.get_typed_config()
+
     # No need to decompress - import_database_dump_file streams .gz directly
 
-    if system.config['clear_database']:
+    if cfg.clear_database:
         output.message(
             output.Subject.TARGET,
             'Clearing database before import',
@@ -101,7 +103,7 @@ def import_database_dump():
 
     database_utility.truncate_tables()
 
-    if not system.config['keep_dump'] and not mode.is_dump():
+    if not cfg.keep_dump and not mode.is_dump():
 
         database_utility.get_database_version(mode.Client.TARGET)
 
@@ -113,12 +115,12 @@ def import_database_dump():
 
         if mode.is_import():
             # External import file (user-provided path)
-            _dump_path = system.config['import']
+            _dump_path = cfg.import_file
         else:
             # Internal dump file (always .gz now)
             _dump_path = database_utility.get_dump_gz_path(mode.Client.TARGET)
 
-        if not system.config['yes']:
+        if not cfg.yes:
             _host_name = helper.get_ssh_host_name(mode.Client.TARGET, True) if mode.is_remote(
                 mode.Client.TARGET) else 'local'
 
@@ -137,22 +139,21 @@ def import_database_dump():
 
         import_database_dump_file(mode.Client.TARGET, _dump_path)
 
-    if 'after_dump' in system.config['target']:
-        _after_dump = system.config['target']['after_dump']
+    if cfg.target.after_dump:
         output.message(
             output.Subject.TARGET,
-            f'Importing after_dump file {output.CliFormat.BLACK}{_after_dump}{output.CliFormat.ENDC}',
+            f'Importing after_dump file {output.CliFormat.BLACK}{cfg.target.after_dump}{output.CliFormat.ENDC}',
             True
         )
-        import_database_dump_file(mode.Client.TARGET, _after_dump)
+        import_database_dump_file(mode.Client.TARGET, cfg.target.after_dump)
 
-    if 'post_sql' in system.config['target']:
+    if cfg.target.post_sql:
         output.message(
             output.Subject.TARGET,
             f'Running addition post sql commands',
             True
         )
-        for _sql_command in system.config['target']['post_sql']:
+        for _sql_command in cfg.target.post_sql:
             database_utility.run_database_command(mode.Client.TARGET, _sql_command, True)
 
 
@@ -166,7 +167,8 @@ def import_database_dump_file(client, filepath):
     if not helper.check_file_exists(client, filepath):
         return
 
-    _db_name = quote_shell_arg(system.config[client]['db']['name'])
+    cfg = system.get_typed_config()
+    _db_name = quote_shell_arg(cfg.get_client(client).db.name)
     _safe_filepath = quote_shell_arg(filepath)
     _mysql_cmd = (helper.get_command(client, 'mysql') + ' ' +
                   database_utility.generate_mysql_credentials(client) + ' ' + _db_name)
