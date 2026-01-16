@@ -36,18 +36,13 @@ def check_configuration(client):
         _db_config = parse_database_credentials(json.loads(stdout)['DB'])
     elif '.env' in _path:
         # Try to parse settings from .env file
-        system.ensure_client_db(client)
-        # Re-get config after ensure
-        cfg = system.get_typed_config()
-        client_cfg = cfg.get_client(client)
+        # db_cfg fields can override default env var names if user provides them
         db_cfg = client_cfg.db
-
         _db_config = {
             'name': get_database_setting_from_env(client, db_cfg.name or 'TYPO3_CONF_VARS__DB__Connections__Default__dbname', _path),
             'host': get_database_setting_from_env(client, db_cfg.host or 'TYPO3_CONF_VARS__DB__Connections__Default__host', _path),
             'password': get_database_setting_from_env(client, db_cfg.password or 'TYPO3_CONF_VARS__DB__Connections__Default__password', _path),
-            'port': get_database_setting_from_env(client, str(db_cfg.port) if db_cfg.port else 'TYPO3_CONF_VARS__DB__Connections__Default__port', _path)
-            if get_database_setting_from_env(client, str(db_cfg.port) if db_cfg.port else 'TYPO3_CONF_VARS__DB__Connections__Default__port', _path) != '' else 3306,
+            'port': get_database_setting_from_env(client, str(db_cfg.port) if db_cfg.port else 'TYPO3_CONF_VARS__DB__Connections__Default__port', _path) or 3306,
             'user': get_database_setting_from_env(client, db_cfg.user or 'TYPO3_CONF_VARS__DB__Connections__Default__user', _path),
         }
     elif 'AdditionalConfiguration.php' in _path:
