@@ -86,6 +86,23 @@ class TestParseSymfonyDatabaseUrl:
         assert result['password'] == 'p4ssw0rd'
 
     @pytest.mark.unit
+    def test_parse_url_with_at_sign_in_password(self):
+        """Parse DATABASE_URL with @ in password (URL-encoded as %40)."""
+        db_url = "DATABASE_URL=mysql://user:p%40ssword@host:3306/db"
+        result = parse_symfony_database_url(db_url)
+
+        assert result['password'] == 'p@ssword'
+
+    @pytest.mark.unit
+    def test_parse_url_with_multiple_special_chars_in_password(self):
+        """Parse DATABASE_URL with multiple special chars (URL-encoded)."""
+        # Password: P@ss:word/test -> URL-encoded: P%40ss%3Aword%2Ftest
+        db_url = "DATABASE_URL=mysql://user:P%40ss%3Aword%2Ftest@host:3306/db"
+        result = parse_symfony_database_url(db_url)
+
+        assert result['password'] == 'P@ss:word/test'
+
+    @pytest.mark.unit
     def test_parse_url_with_newline_escapes(self):
         """Handle DATABASE_URL with trailing newline escape."""
         db_url = "DATABASE_URL=mysql://user:pass@host:3306/db\\n'"
