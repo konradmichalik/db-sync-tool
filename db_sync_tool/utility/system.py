@@ -10,6 +10,7 @@ import os
 import getpass
 import secrets
 from pathlib import Path
+from typing import Any
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
 from db_sync_tool.remote import utility as remote_utility
@@ -18,7 +19,7 @@ from db_sync_tool.remote import utility as remote_utility
 # GLOBALS
 #
 
-config = {
+config: dict[str, Any] = {
     'verbose': False,
     'mute': False,
     'dry_run': False,
