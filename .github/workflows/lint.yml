@@ -17,8 +17,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install ruff
-        run: pip install ruff
+      - name: Install ruff and mypy
+        run: pip install ruff mypy
 
       - name: Run ruff linter
         run: ruff check --output-format=github .
@@ -26,3 +26,6 @@ jobs:
       - name: Run ruff formatter check
         run: ruff format --check --diff .
         continue-on-error: true
+
+      - name: Run mypy type checker
+        run: mypy db_sync_tool/
