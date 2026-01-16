@@ -5,7 +5,6 @@ Mode script
 """
 
 import subprocess
-from typing import Any
 
 from db_sync_tool.utility import system, output, helper
 from db_sync_tool.utility.exceptions import DbSyncError
@@ -21,39 +20,6 @@ class Client:
     ORIGIN = 'origin'
     TARGET = 'target'
     LOCAL = 'local'
-
-
-def _get_client_attr(client: str, key: str) -> Any:
-    """
-    Get a configuration attribute value for comparison.
-    Helper for SyncMode configuration checks.
-
-    :param client: Client identifier ('origin' or 'target')
-    :param key: Attribute key
-    :return: Attribute value
-    """
-    cfg = system.get_typed_config()
-    client_cfg = cfg.get_client(client)
-    if key == 'db':
-        # For db comparison, return a tuple of identifying values
-        return (client_cfg.db.name, client_cfg.db.host, client_cfg.db.user)
-    return getattr(client_cfg, key, '')
-
-
-def _has_client_attr(client: str, key: str) -> bool:
-    """
-    Check if a configuration attribute has a non-empty value.
-    Helper for SyncMode configuration checks.
-
-    :param client: Client identifier ('origin' or 'target')
-    :param key: Attribute key
-    :return: True if attribute has a value
-    """
-    value = _get_client_attr(client, key)
-    if key == 'db':
-        # db is "available" if name is set
-        return value[0] != ''
-    return value != '' and value is not None
 
 
 class SyncMode:
@@ -73,77 +39,68 @@ class SyncMode:
 
     @staticmethod
     def is_dump_local() -> bool:
-        return SyncMode.is_full_local() and SyncMode.is_same_host() and not SyncMode.is_sync_local()
+        cfg = system.get_typed_config()
+        both_local = not cfg.origin.is_remote and not cfg.target.is_remote
+        return both_local and SyncMode.is_same_host() and not SyncMode.is_sync_local()
 
     @staticmethod
     def is_dump_remote() -> bool:
-        return SyncMode.is_full_remote() and SyncMode.is_same_host() and \
-               not SyncMode.is_sync_remote()
+        cfg = system.get_typed_config()
+        both_remote = cfg.origin.is_remote and cfg.target.is_remote
+        return both_remote and SyncMode.is_same_host() and not SyncMode.is_sync_remote()
 
     @staticmethod
     def is_receiver() -> bool:
-        return _has_client_attr(Client.ORIGIN, 'host') and not SyncMode.is_proxy() and \
-               not SyncMode.is_sync_remote()
+        cfg = system.get_typed_config()
+        return cfg.origin.is_remote and not SyncMode.is_proxy() and not SyncMode.is_sync_remote()
 
     @staticmethod
     def is_sender() -> bool:
-        return _has_client_attr(Client.TARGET, 'host') and not SyncMode.is_proxy() and \
-               not SyncMode.is_sync_remote()
+        cfg = system.get_typed_config()
+        return cfg.target.is_remote and not SyncMode.is_proxy() and not SyncMode.is_sync_remote()
 
     @staticmethod
     def is_proxy() -> bool:
-        return SyncMode.is_full_remote()
+        cfg = system.get_typed_config()
+        return cfg.origin.is_remote and cfg.target.is_remote
 
     @staticmethod
     def is_import_local() -> bool:
         cfg = system.get_typed_config()
-        return cfg.import_file != '' and not _has_client_attr(Client.TARGET, 'host')
+        return cfg.import_file != '' and not cfg.target.is_remote
 
     @staticmethod
     def is_import_remote() -> bool:
         cfg = system.get_typed_config()
-        return cfg.import_file != '' and _has_client_attr(Client.TARGET, 'host')
+        return cfg.import_file != '' and cfg.target.is_remote
 
     @staticmethod
     def is_sync_local() -> bool:
-        return SyncMode.is_full_local() and SyncMode.is_same_host() and SyncMode.is_same_sync()
+        cfg = system.get_typed_config()
+        return (not cfg.origin.is_remote and not cfg.target.is_remote and
+                SyncMode.is_same_host() and SyncMode.is_same_sync())
 
     @staticmethod
     def is_sync_remote() -> bool:
-        return SyncMode.is_full_remote() and SyncMode.is_same_host() and SyncMode.is_same_sync()
+        cfg = system.get_typed_config()
+        return (cfg.origin.is_remote and cfg.target.is_remote and
+                SyncMode.is_same_host() and SyncMode.is_same_sync())
 
     @staticmethod
     def is_same_sync() -> bool:
-        return ((SyncMode.is_available_configuration('path') and
-                 not SyncMode.is_same_configuration('path')) or
-               (SyncMode.is_available_configuration('db') and
-                not SyncMode.is_same_configuration('db')))
-
-    @staticmethod
-    def is_full_remote() -> bool:
-        return SyncMode.is_available_configuration('host')
-
-    @staticmethod
-    def is_full_local() -> bool:
-        return SyncMode.is_unavailable_configuration('host')
+        cfg = system.get_typed_config()
+        # Different paths or different databases on same host
+        paths_differ = cfg.origin.path and cfg.target.path and cfg.origin.path != cfg.target.path
+        dbs_differ = (cfg.origin.db.name and cfg.target.db.name and
+                      (cfg.origin.db.name, cfg.origin.db.host) != (cfg.target.db.name, cfg.target.db.host))
+        return paths_differ or dbs_differ
 
     @staticmethod
     def is_same_host() -> bool:
-        return SyncMode.is_same_configuration('host') and SyncMode.is_same_configuration('port') and SyncMode.is_same_configuration('user')
-
-    @staticmethod
-    def is_available_configuration(key: str) -> bool:
-        return _has_client_attr(Client.ORIGIN, key) and _has_client_attr(Client.TARGET, key)
-
-    @staticmethod
-    def is_unavailable_configuration(key: str) -> bool:
-        return not _has_client_attr(Client.ORIGIN, key) and not _has_client_attr(Client.TARGET, key)
-
-    @staticmethod
-    def is_same_configuration(key: str) -> bool:
-        return (SyncMode.is_available_configuration(key) and
-               _get_client_attr(Client.ORIGIN, key) == _get_client_attr(Client.TARGET, key)) or \
-               SyncMode.is_unavailable_configuration(key)
+        cfg = system.get_typed_config()
+        return (cfg.origin.host == cfg.target.host and
+                cfg.origin.port == cfg.target.port and
+                cfg.origin.user == cfg.target.user)
 
 
 # Default sync mode
