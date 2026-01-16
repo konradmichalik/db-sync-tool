@@ -42,7 +42,7 @@ jobs:
 
       - name: Run integration tests
         working-directory: tests
-        run: pytest -v --timeout=120
+        run: pytest integration/ -v --timeout=120
 
       - name: Show container logs on failure
         if: failure()
