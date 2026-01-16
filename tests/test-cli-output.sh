@@ -22,6 +22,12 @@ echo "Mode: $OUTPUT_MODE"
 [ -n "$EXTRA_ARGS" ] && echo "Args: $EXTRA_ARGS"
 echo ""
 
+# Install dependencies if needed
+if ! python3 -c "import yaml, rich" 2>/dev/null; then
+    echo "Installing dependencies..."
+    pip3 install --user -q -r ../requirements.txt 2>/dev/null || pip3 install --user -q pyyaml rich
+fi
+
 # Start containers if needed (--wait handles healthchecks)
 if ! docker compose -f integration/docker/docker-compose.yml ps --status running 2>/dev/null | grep -q "www1"; then
     echo "Starting Docker containers..."
