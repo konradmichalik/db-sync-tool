@@ -36,7 +36,7 @@ echo "Running inside container: db_sync_tool -f $CONFIG --output $OUTPUT_MODE $E
 echo ""
 
 # Run inside www1 container using mounted source code
-docker compose -f integration/docker/docker-compose.yml exec -T www1 \
+docker compose -f integration/docker/docker-compose.yml exec -T -w /var/www/html www1 \
     python3 -m db_sync_tool -f "$CONFIG" --output "$OUTPUT_MODE" -y $EXTRA_ARGS
 
 echo ""
