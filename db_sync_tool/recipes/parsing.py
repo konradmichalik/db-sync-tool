@@ -9,7 +9,7 @@ allowing proper unit testing and code coverage measurement.
 Functions here are imported and used by the framework recipe modules.
 """
 
-import re
+from urllib.parse import urlparse, unquote
 
 
 def parse_symfony_database_url(db_credentials: str) -> dict:
@@ -23,15 +23,41 @@ def parse_symfony_database_url(db_credentials: str) -> dict:
     :raises ValueError: If format doesn't match expected pattern
     """
     db_credentials = str(db_credentials).replace('\\n\'', '')
-    # DATABASE_URL=mysql://db-user:1234@db-host:3306/db-name
-    pattern = r'^DATABASE_URL=(?P<db_type>\w+):\/\/(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)\/(?P<name>[^?]+)(?:\?.*)?$'
 
-    match = re.match(pattern, db_credentials)
-
-    if match:
-        return match.groupdict()
+    # Remove DATABASE_URL= prefix if present
+    if db_credentials.startswith('DATABASE_URL='):
+        url = db_credentials[len('DATABASE_URL='):]
     else:
+        url = db_credentials
+
+    parsed = urlparse(url)
+
+    # Validate required components (password is required for database connections)
+    if not all([parsed.scheme, parsed.username, parsed.hostname, parsed.port, parsed.path]):
         raise ValueError('Mismatch of expected database credentials')
+
+    # Password is required
+    if parsed.password is None:
+        raise ValueError('Mismatch of expected database credentials')
+
+    # Extract database name from path (remove leading /)
+    dbname = parsed.path.lstrip('/')
+    if not dbname:
+        raise ValueError('Mismatch of expected database credentials')
+
+    # These are validated as non-None above, but mypy can't infer that
+    assert parsed.username is not None
+    assert parsed.password is not None
+    assert parsed.hostname is not None
+
+    return {
+        'db_type': parsed.scheme,
+        'user': unquote(parsed.username),
+        'password': unquote(parsed.password),
+        'host': parsed.hostname,
+        'port': str(parsed.port),
+        'name': dbname,
+    }
 
 
 def parse_drupal_drush_credentials(db_credentials: dict) -> dict:
