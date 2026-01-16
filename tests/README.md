@@ -33,7 +33,9 @@ Full end-to-end tests with Docker containers.
 tests/
 ├── unit/                    # Unit tests (no Docker)
 │   ├── conftest.py
-│   └── test_security.py     # 46 tests
+│   ├── test_security.py     # 46 tests
+│   ├── test_pure.py         # 38 tests
+│   └── test_config.py       # 33 tests
 │
 ├── integration/             # Integration tests (Docker)
 │   ├── configs/             # Sync configurations (40+ scenarios)
@@ -56,11 +58,13 @@ tests/
 | File | Tests | Purpose |
 |------|-------|---------|
 | `test_security.py` | 46 | Security-critical functions |
+| `test_pure.py` | 38 | Pure utility functions |
+| `test_config.py` | 33 | Configuration dataclasses |
 
-**Covered functions:**
-- `quote_shell_arg()` - Command injection prevention
-- `sanitize_table_name()` - SQL injection prevention
-- `sanitize_command_for_logging()` - Credential masking
+**Covered modules (98% coverage):**
+- `utility/security.py` - Command/SQL injection prevention, credential masking
+- `utility/pure.py` - Version parsing, path handling, string utilities
+- `utility/config.py` - Typed configuration dataclasses
 
 ## Integration Tests
 

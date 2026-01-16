@@ -15,7 +15,7 @@ fi
 PYTEST_ARGS=""
 if [[ "$1" == "--cov" ]]; then
     shift
-    PYTEST_ARGS="--cov=db_sync_tool.utility.security --cov-report=term-missing"
+    PYTEST_ARGS="--cov=db_sync_tool.utility.security --cov=db_sync_tool.utility.pure --cov=db_sync_tool.utility.config --cov-report=term-missing"
     # Coverage requires pytest-cov
     if [[ "$PYTEST_CMD" == "pipx run pytest" ]]; then
         PYTEST_CMD="pipx run --spec pytest-cov pytest"
