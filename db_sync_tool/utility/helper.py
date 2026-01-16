@@ -59,11 +59,12 @@ def clean_up_dump_dir(client: str, path: str, num: int = 5) -> None:
                    ' -E "\\.gz$|\\.sql$"'
 
     # List files in directory sorted by change date
-    _files = mode.run_command(
+    _result = mode.run_command(
         _command,
         client,
         True
-    ).splitlines()
+    )
+    _files = _result.splitlines() if _result else []
 
     for i in range(len(_files)):
         _filename = _files[i].rsplit(' ', 1)[-1]
@@ -82,11 +83,12 @@ def check_os(client: str) -> str:
     :param client: Client identifier
     :return: OS name
     """
-    return mode.run_command(
+    result = mode.run_command(
         get_command(client, 'uname') + ' -s',
         client,
         True
     )
+    return result if result else ''
 
 
 def get_command(client: str, command: str) -> str:
@@ -248,6 +250,7 @@ def check_sshpass_version() -> bool | None:
         output.message(output.Subject.LOCAL, f'sshpass version {version}')
         system.config['use_sshpass'] = True
         return True
+    return None
 
 
 def confirm(prompt: str | None = None, resp: bool = False) -> bool:
@@ -301,11 +304,12 @@ def run_sed_command(client: str, command: str) -> str:
          True
     )
     # If neither option is supported, default to -E
-    if option == '':
+    if not option:
         option = '-E'
 
-    return mode.run_command(
+    result = mode.run_command(
         f"{get_command(client, 'sed')} -n {option} {command}",
         client,
         True
-    ).strip().replace('\n', '')
+    )
+    return result.strip().replace('\n', '') if result else ''
