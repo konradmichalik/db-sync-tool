@@ -32,12 +32,12 @@ echo ""
 
 # Check if Docker containers are running
 check_containers() {
-    if ! docker-compose -f docker/docker-compose.yml ps --quiet 2>/dev/null | grep -q .; then
+    if ! docker-compose -f integration/integration/docker/docker-compose.yml ps --quiet 2>/dev/null | grep -q .; then
         return 1
     fi
 
     # Check if containers are healthy
-    local unhealthy=$(docker-compose -f docker/docker-compose.yml ps 2>/dev/null | grep -E "(unhealthy|starting)" || true)
+    local unhealthy=$(docker-compose -f integration/docker/docker-compose.yml ps 2>/dev/null | grep -E "(unhealthy|starting)" || true)
     if [ -n "$unhealthy" ]; then
         return 1
     fi
@@ -48,7 +48,7 @@ check_containers() {
 # Start Docker containers if needed
 start_containers() {
     echo -e "${YELLOW}Starting Docker containers...${NC}"
-    docker-compose -f docker/docker-compose.yml up -d
+    docker-compose -f integration/docker/docker-compose.yml up -d
 
     echo -e "${YELLOW}Waiting for containers to be healthy...${NC}"
     local max_wait=60
