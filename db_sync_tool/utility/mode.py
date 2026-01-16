@@ -5,6 +5,7 @@ Mode script
 """
 
 import subprocess
+from typing import Any
 
 from db_sync_tool.utility import system, output, helper
 from db_sync_tool.utility.exceptions import DbSyncError
@@ -20,6 +21,39 @@ class Client:
     ORIGIN = 'origin'
     TARGET = 'target'
     LOCAL = 'local'
+
+
+def _get_client_attr(client: str, key: str) -> Any:
+    """
+    Get a configuration attribute value for comparison.
+    Helper for SyncMode configuration checks.
+
+    :param client: Client identifier ('origin' or 'target')
+    :param key: Attribute key
+    :return: Attribute value
+    """
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+    if key == 'db':
+        # For db comparison, return a tuple of identifying values
+        return (client_cfg.db.name, client_cfg.db.host, client_cfg.db.user)
+    return getattr(client_cfg, key, '')
+
+
+def _has_client_attr(client: str, key: str) -> bool:
+    """
+    Check if a configuration attribute has a non-empty value.
+    Helper for SyncMode configuration checks.
+
+    :param client: Client identifier ('origin' or 'target')
+    :param key: Attribute key
+    :return: True if attribute has a value
+    """
+    value = _get_client_attr(client, key)
+    if key == 'db':
+        # db is "available" if name is set
+        return value[0] != ''
+    return value != '' and value is not None
 
 
 class SyncMode:
@@ -48,12 +82,12 @@ class SyncMode:
 
     @staticmethod
     def is_receiver() -> bool:
-        return 'host' in system.config[Client.ORIGIN] and not SyncMode.is_proxy() and \
+        return _has_client_attr(Client.ORIGIN, 'host') and not SyncMode.is_proxy() and \
                not SyncMode.is_sync_remote()
 
     @staticmethod
     def is_sender() -> bool:
-        return 'host' in system.config[Client.TARGET] and not SyncMode.is_proxy() and \
+        return _has_client_attr(Client.TARGET, 'host') and not SyncMode.is_proxy() and \
                not SyncMode.is_sync_remote()
 
     @staticmethod
@@ -62,11 +96,13 @@ class SyncMode:
 
     @staticmethod
     def is_import_local() -> bool:
-        return system.config['import'] != '' and 'host' not in system.config[Client.TARGET]
+        cfg = system.get_typed_config()
+        return cfg.import_file != '' and not _has_client_attr(Client.TARGET, 'host')
 
     @staticmethod
     def is_import_remote() -> bool:
-        return system.config['import'] != '' and 'host' in system.config[Client.TARGET]
+        cfg = system.get_typed_config()
+        return cfg.import_file != '' and _has_client_attr(Client.TARGET, 'host')
 
     @staticmethod
     def is_sync_local() -> bool:
@@ -97,16 +133,16 @@ class SyncMode:
 
     @staticmethod
     def is_available_configuration(key: str) -> bool:
-        return key in system.config[Client.ORIGIN] and key in system.config[Client.TARGET]
+        return _has_client_attr(Client.ORIGIN, key) and _has_client_attr(Client.TARGET, key)
 
     @staticmethod
     def is_unavailable_configuration(key: str) -> bool:
-        return key not in system.config[Client.ORIGIN] and key not in system.config[Client.TARGET]
+        return not _has_client_attr(Client.ORIGIN, key) and not _has_client_attr(Client.TARGET, key)
 
     @staticmethod
     def is_same_configuration(key: str) -> bool:
         return (SyncMode.is_available_configuration(key) and
-               system.config[Client.ORIGIN][key] == system.config[Client.TARGET][key]) or \
+               _get_client_attr(Client.ORIGIN, key) == _get_client_attr(Client.TARGET, key)) or \
                SyncMode.is_unavailable_configuration(key)
 
 
@@ -149,14 +185,15 @@ def check_sync_mode() -> None:
             sync_mode = _mode
             _description = _desc
 
+    cfg = system.get_typed_config()
     if is_import():
         output.message(
             output.Subject.INFO,
-            f'Import file {output.CliFormat.BLACK}{system.config["import"]}{output.CliFormat.ENDC}',
+            f'Import file {output.CliFormat.BLACK}{cfg.import_file}{output.CliFormat.ENDC}',
             True
         )
 
-    system.config['is_same_client'] = SyncMode.is_same_host()
+    system.set_is_same_client(SyncMode.is_same_host())
 
     output.message(
         output.Subject.INFO,
@@ -224,7 +261,8 @@ def run_command(command: str, client: str, force_output: bool = False,
     :param skip_dry_run: Boolean
     :return: Command output or None
     """
-    if system.config['verbose']:
+    cfg = system.get_typed_config()
+    if cfg.verbose:
         # Sanitize command to prevent credentials from appearing in logs
         _safe_command = sanitize_command_for_logging(command)
         output.message(
@@ -233,7 +271,7 @@ def run_command(command: str, client: str, force_output: bool = False,
             debug=True
         )
 
-    if system.config['dry_run'] and skip_dry_run:
+    if cfg.dry_run and skip_dry_run:
         return None
 
     if is_remote(client):
@@ -260,9 +298,10 @@ def check_for_protection() -> None:
     """
     Check if the target system is protected and exit if so.
     """
+    cfg = system.get_typed_config()
     if sync_mode in (SyncMode.RECEIVER, SyncMode.SENDER, SyncMode.PROXY, SyncMode.SYNC_LOCAL,
                      SyncMode.SYNC_REMOTE, SyncMode.IMPORT_LOCAL, SyncMode.IMPORT_REMOTE) and \
-            'protect' in system.config[Client.TARGET]:
+            cfg.target.protect:
         _host = helper.get_ssh_host_name(Client.TARGET)
         raise DbSyncError(
             f'The host {_host} is protected against the import of a database dump. '
