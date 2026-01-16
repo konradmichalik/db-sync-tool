@@ -17,7 +17,8 @@ def check_configuration(client):
     :param client: String
     :return:
     """
-    _path = system.config[client]['path']
+    cfg = system.get_typed_config()
+    _path = cfg.get_client(client).path
 
     # Check for symfony 2.8
     if 'parameters.yml' in _path:
@@ -31,14 +32,14 @@ def check_configuration(client):
     # Using for symfony >=3.4
     else:
         stdout = mode.run_command(
-            helper.get_command(client, 'grep') + ' -v "^#" ' + system.config[client][
-                'path'] + ' | ' + helper.get_command(client, 'grep') + ' DATABASE_URL',
+            helper.get_command(client, 'grep') + ' -v "^#" ' + _path +
+            ' | ' + helper.get_command(client, 'grep') + ' DATABASE_URL',
             client,
             True
         )
         _db_config = parse_database_credentials(stdout)
 
-    system.config[client]['db'] = helper.clean_db_config(_db_config)
+    system.set_database_config(client, helper.clean_db_config(_db_config))
 
 
 def parse_database_credentials(db_credentials):

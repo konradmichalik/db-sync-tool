@@ -19,13 +19,14 @@ def check_configuration(client):
     :param client: String
     :return:
     """
-    _path = system.config[client]['path']
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+    _path = client_cfg.path
 
     if 'LocalConfiguration' in _path:
         stdout = mode.run_command(
             helper.get_command(client, 'php') + ' -r "echo json_encode(include \'' +
-            system.config[client][
-                'path'] + '\');"',
+            _path + '\');"',
             client,
             True
         )
@@ -35,36 +36,38 @@ def check_configuration(client):
         _db_config = parse_database_credentials(json.loads(stdout)['DB'])
     elif '.env' in _path:
         # Try to parse settings from .env file
-        if 'db' not in system.config[client]:
-            system.config[client]['db'] = {}
+        system.ensure_client_db(client)
+        # Re-get config after ensure
+        cfg = system.get_typed_config()
+        client_cfg = cfg.get_client(client)
+        db_cfg = client_cfg.db
 
         _db_config = {
-            'name': get_database_setting_from_env(client, system.config[client]['db'].get('name', 'TYPO3_CONF_VARS__DB__Connections__Default__dbname'), system.config[client]['path']),
-            'host': get_database_setting_from_env(client, system.config[client]['db'].get('host', 'TYPO3_CONF_VARS__DB__Connections__Default__host'), system.config[client]['path']),
-            'password': get_database_setting_from_env(client, system.config[client]['db'].get('password', 'TYPO3_CONF_VARS__DB__Connections__Default__password'), system.config[client]['path']),
-            'port': get_database_setting_from_env(client, system.config[client]['db'].get('port', 'TYPO3_CONF_VARS__DB__Connections__Default__port'), system.config[client]['path'])
-            if get_database_setting_from_env(client, system.config[client]['db'].get('port', 'TYPO3_CONF_VARS__DB__Connections__Default__port'), system.config[client]['path']) != '' else 3306,
-            'user': get_database_setting_from_env(client, system.config[client]['db'].get('user', 'TYPO3_CONF_VARS__DB__Connections__Default__user'), system.config[client]['path']),
+            'name': get_database_setting_from_env(client, db_cfg.name or 'TYPO3_CONF_VARS__DB__Connections__Default__dbname', _path),
+            'host': get_database_setting_from_env(client, db_cfg.host or 'TYPO3_CONF_VARS__DB__Connections__Default__host', _path),
+            'password': get_database_setting_from_env(client, db_cfg.password or 'TYPO3_CONF_VARS__DB__Connections__Default__password', _path),
+            'port': get_database_setting_from_env(client, str(db_cfg.port) if db_cfg.port else 'TYPO3_CONF_VARS__DB__Connections__Default__port', _path)
+            if get_database_setting_from_env(client, str(db_cfg.port) if db_cfg.port else 'TYPO3_CONF_VARS__DB__Connections__Default__port', _path) != '' else 3306,
+            'user': get_database_setting_from_env(client, db_cfg.user or 'TYPO3_CONF_VARS__DB__Connections__Default__user', _path),
         }
     elif 'AdditionalConfiguration.php' in _path:
         # Try to parse settings from AdditionalConfiguration.php file
         _db_config = {
-            'name': get_database_setting_from_additional_configuration(client, 'dbname', system.config[client]['path']),
-            'host': get_database_setting_from_additional_configuration(client, 'host', system.config[client]['path']),
-            'password': get_database_setting_from_additional_configuration(client, 'password', system.config[client]['path']),
-            'port': get_database_setting_from_additional_configuration(client, 'port', system.config[client]['path'])
-            if get_database_setting_from_additional_configuration(client, 'port',
-                                    system.config[client]['path']) != '' else 3306,
-            'user': get_database_setting_from_additional_configuration(client, 'user', system.config[client]['path']),
+            'name': get_database_setting_from_additional_configuration(client, 'dbname', _path),
+            'host': get_database_setting_from_additional_configuration(client, 'host', _path),
+            'password': get_database_setting_from_additional_configuration(client, 'password', _path),
+            'port': get_database_setting_from_additional_configuration(client, 'port', _path)
+            if get_database_setting_from_additional_configuration(client, 'port', _path) != '' else 3306,
+            'user': get_database_setting_from_additional_configuration(client, 'user', _path),
         }
     else:
         raise ParsingError(
-            f'Can\'t extract database information from given path {system.config[client]["path"]}. '
+            f'Can\'t extract database information from given path {_path}. '
             f'Can only extract settings from the following files: LocalConfiguration.php, '
             f'AdditionalConfiguration.php, .env'
         )
 
-    system.config[client]['db'] = helper.clean_db_config(_db_config)
+    system.set_database_config(client, helper.clean_db_config(_db_config))
 
 
 def parse_database_credentials(db_credentials):

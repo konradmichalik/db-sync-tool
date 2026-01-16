@@ -19,7 +19,8 @@ def check_configuration(client):
     :param client: String
     :return:
     """
-    _path = system.config[client]['path']
+    cfg = system.get_typed_config()
+    _path = cfg.get_client(client).path
 
     # Try direct settings.php parsing first
     try:
@@ -30,7 +31,7 @@ def check_configuration(client):
                 'Parsed database config from settings.php',
                 True
             )
-            system.config[client]['db'] = helper.clean_db_config(_db_config)
+            system.set_database_config(client, helper.clean_db_config(_db_config))
             return
     except Exception:
         pass
@@ -45,7 +46,8 @@ def check_configuration_drush(client):
     :param client: String
     :return:
     """
-    _path = system.config[client]['path']
+    cfg = system.get_typed_config()
+    _path = cfg.get_client(client).path
 
     # Check Drush version
     _raw_version = mode.run_command(
@@ -73,7 +75,7 @@ def check_configuration_drush(client):
 
     _db_config = parse_database_credentials(json.loads(stdout))
 
-    system.config[client]['db'] = helper.clean_db_config(_db_config)
+    system.set_database_config(client, helper.clean_db_config(_db_config))
 
 
 def parse_settings_php(client, path):
