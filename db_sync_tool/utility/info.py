@@ -66,11 +66,10 @@ def print_footer():
     Printing console footer
     :return:
     """
-    if system.config['dry_run']:
+    cfg = system.get_typed_config()
+    if cfg.dry_run:
         _message = 'Successfully executed dry run'
-    elif not system.config['keep_dump'] and \
-            not system.config['is_same_client'] and \
-            not mode.is_import():
+    elif not cfg.keep_dump and not cfg.is_same_client and not mode.is_import():
         _message = 'Successfully synchronized databases'
     elif mode.is_import():
         _message = 'Successfully imported database dump'

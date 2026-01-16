@@ -30,8 +30,10 @@ def get_password_environment(client):
     if not client:
         return ''
 
-    if system.config['use_sshpass'] and not 'ssh_key' in system.config[client] and 'password' in system.config[client]:
-        return f'SSHPASS=\'{system.config[client]["password"]}\' '
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+    if cfg.use_sshpass and not client_cfg.ssh_key and client_cfg.password:
+        return f'SSHPASS=\'{client_cfg.password}\' '
     return ''
 
 
@@ -41,20 +43,19 @@ def get_authorization(client):
     :param client: String
     :return: String
     """
-    _ssh_key = None
     if not client:
         return ''
 
-    if 'ssh_key' in system.config[client]:
-        _ssh_key = system.config[mode.Client.ORIGIN]['ssh_key']
-
-    _ssh_port = system.config[client]['port'] if 'port' in system.config[client] else 22
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+    _ssh_key = client_cfg.ssh_key
+    _ssh_port = client_cfg.port
 
     if _ssh_key is None:
-        if system.config['use_sshpass'] and get_password_environment(client):
+        if cfg.use_sshpass and get_password_environment(client):
             # In combination with SSHPASS environment variable
             # https://www.redhat.com/sysadmin/ssh-automation-sshpass
-            return f'--rsh="sshpass -e ssh -p{_ssh_port} -o StrictHostKeyChecking=no -l {system.config[client]["user"]}"'
+            return f'--rsh="sshpass -e ssh -p{_ssh_port} -o StrictHostKeyChecking=no -l {client_cfg.user}"'
         else:
             return f'-e "ssh -p{_ssh_port} -o StrictHostKeyChecking=no"'
     else:
@@ -69,7 +70,9 @@ def get_host(client):
     :return: String
     """
     if mode.is_remote(client):
-        return f'{system.config[client]["user"]}@{system.config[client]["host"]}:'
+        cfg = system.get_typed_config()
+        client_cfg = cfg.get_client(client)
+        return f'{client_cfg.user}@{client_cfg.host}:'
     return ''
 
 
@@ -78,9 +81,10 @@ def get_options():
     Prepare rsync options with stored default options and provided addtional options
     :return: String
     """
+    cfg = system.get_typed_config()
     _options = f'{" ".join(default_options)}'
-    if not system.config['use_rsync_options'] is None:
-        _options += f'{system.config["use_rsync_options"]}'
+    if cfg.use_rsync_options is not None:
+        _options += f'{cfg.use_rsync_options}'
     return _options
 
 
@@ -90,7 +94,8 @@ def read_stats(stats):
     :param stats: String
     :return:
     """
-    if system.config['verbose']:
+    cfg = system.get_typed_config()
+    if cfg.verbose:
         print(f'{output.Subject.DEBUG}{output.CliFormat.BLACK}{stats}{output.CliFormat.ENDC}')
 
     _file_size = parse_string(stats, r'Total transferred file size:\s*([\d.]+[MKG]?)')

@@ -62,10 +62,11 @@ def message(header, message, do_print=True, do_log=False, debug=False, verbose_o
     :param verbose_only: Only show in verbose mode
     :return: String message if do_print is False
     """
+    cfg = system.get_typed_config()
     output_manager = get_output_manager()
 
     # Logging if explicitly forced or verbose option is active
-    if do_log or system.config['verbose']:
+    if do_log or cfg.verbose:
         _message = remove_multiple_elements_from_string([CliFormat.BEIGE,
                                                          CliFormat.PURPLE,
                                                          CliFormat.BLUE,
@@ -86,9 +87,9 @@ def message(header, message, do_print=True, do_log=False, debug=False, verbose_o
             log.get_logger().info(_message)
 
     # Formatting message if mute option is inactive
-    if (system.config['mute'] and header == Subject.ERROR) or (not system.config['mute']):
+    if (cfg.mute and header == Subject.ERROR) or (not cfg.mute):
         if do_print:
-            if not verbose_only or (verbose_only and system.config['verbose']):
+            if not verbose_only or (verbose_only and cfg.verbose):
                 # Determine subject and remote status
                 subject_str = _SUBJECT_MAP.get(header, "INFO")
                 is_remote = _is_remote_for_header(header)

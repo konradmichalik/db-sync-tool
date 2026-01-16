@@ -34,23 +34,25 @@ def create_mysql_config_file(client: str) -> str:
     """
     global _mysql_config_files
 
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+
     # Verify database config exists
-    if client not in system.config or 'db' not in system.config[client]:
+    if not client_cfg.db.name and not client_cfg.db.user:
         raise ConfigError(f"Database configuration not found for client: {client}")
 
-    db_config = system.config[client]['db']
+    db_config = client_cfg.db
 
     # Build config file content
     config_content = "[client]\n"
-    config_content += f"user={db_config.get('user', '')}\n"
-    config_content += f"password={db_config.get('password', '')}\n"
-    if 'host' in db_config:
-        config_content += f"host={db_config['host']}\n"
-    if 'port' in db_config:
-        config_content += f"port={db_config['port']}\n"
-    # Disable SSL by default (can be overridden in config)
-    if db_config.get('ssl', False) is False:
-        config_content += "ssl=0\n"
+    config_content += f"user={db_config.user}\n"
+    config_content += f"password={db_config.password}\n"
+    if db_config.host:
+        config_content += f"host={db_config.host}\n"
+    if db_config.port:
+        config_content += f"port={db_config.port}\n"
+    # Disable SSL by default
+    config_content += "ssl=0\n"
 
     random_suffix = secrets.token_hex(8)
     config_path = f"/tmp/.my_{random_suffix}.cnf"
@@ -131,7 +133,8 @@ def run_database_command(client: str, command: str, force_database_name: bool = 
     """
     _database_name = ''
     if force_database_name:
-        _database_name = ' ' + helper.quote_shell_arg(system.config[client]['db']['name'])
+        cfg = system.get_typed_config()
+        _database_name = ' ' + helper.quote_shell_arg(cfg.get_client(client).db.name)
 
     # Escape the SQL command for shell
     # - Backslashes need doubling
@@ -166,24 +169,23 @@ def generate_database_dump_filename() -> None:
     """
     global database_dump_file_name
 
-    if system.config['dump_name'] == '':
+    cfg = system.get_typed_config()
+    if cfg.dump_name == '':
         # _project-db_2022-08-22_12-37.sql
         _now = datetime.datetime.now()
-        database_dump_file_name = '_' + system.config[mode.Client.ORIGIN]['db']['name'] + '_' + _now.strftime(
+        database_dump_file_name = '_' + cfg.origin.db.name + '_' + _now.strftime(
             "%Y-%m-%d_%H-%M") + '.sql'
     else:
-        database_dump_file_name = system.config['dump_name'] + '.sql'
+        database_dump_file_name = cfg.dump_name + '.sql'
 
 
 def truncate_tables() -> None:
     """
     Truncate specified tables before import using batch operation
     """
-    # Workaround for config naming
-    if 'truncate_table' in system.config:
-        system.config['truncate_tables'] = system.config['truncate_table']
+    cfg = system.get_typed_config()
 
-    if 'truncate_tables' not in system.config:
+    if not cfg.truncate_tables:
         return
 
     output.message(
@@ -194,7 +196,7 @@ def truncate_tables() -> None:
 
     # Collect all tables to truncate (80-90% fewer network roundtrips)
     tables_to_truncate = []
-    for _table in system.config['truncate_tables']:
+    for _table in cfg.truncate_tables:
         if '*' in _table:
             _wildcard_tables = get_database_tables_like(mode.Client.TARGET,
                                                         _table.replace('*', '%'))
@@ -219,13 +221,11 @@ def generate_ignore_database_tables() -> str:
     Generate the ignore tables options for the mysqldump command by the given table list
     :return: String of ignore table options
     """
-    # Workaround for config naming
-    if 'ignore_table' in system.config:
-        system.config['ignore_tables'] = system.config['ignore_table']
+    cfg = system.get_typed_config()
 
     _ignore_tables: list[str] = []
-    if 'ignore_tables' in system.config:
-        for table in system.config['ignore_tables']:
+    if cfg.ignore_tables:
+        for table in cfg.ignore_tables:
             if '*' in table:
                 _wildcard_tables = get_database_tables_like(mode.Client.ORIGIN,
                                                             table.replace('*', '%'))
@@ -245,12 +245,13 @@ def generate_ignore_database_table(ignore_tables: list[str], table: str) -> list
     :param table: Table name to add
     :return: Updated list of ignore table options
     """
+    cfg = system.get_typed_config()
     # Validate table name to prevent injection
     _safe_table = sanitize_table_name(table)
     # Remove backticks for mysqldump --ignore-table option (it doesn't use them)
     _table_name = _safe_table.strip('`')
     # Validate database name (same rules as table names)
-    _safe_db = sanitize_table_name(system.config['origin']['db']['name'])
+    _safe_db = sanitize_table_name(cfg.origin.db.name)
     _db_name = _safe_db.strip('`')
     ignore_tables.append(f'--ignore-table={_db_name}.{_table_name}')
     return ignore_tables
@@ -263,7 +264,8 @@ def get_database_tables_like(client: str, name: str) -> list[str] | None:
     :param name: Pattern (may contain % wildcard)
     :return: List of table names or None
     """
-    _dbname = system.config[client]['db']['name']
+    cfg = system.get_typed_config()
+    _dbname = cfg.get_client(client).db.name
     # Validate database name to prevent SQL injection
     _safe_dbname = sanitize_table_name(_dbname)
     # Escape single quotes in the pattern to prevent SQL injection
@@ -279,11 +281,12 @@ def get_database_tables() -> str:
     Generate specific tables for export
     :return: String of table names
     """
-    if system.config['tables'] == '':
+    cfg = system.get_typed_config()
+    if cfg.tables == '':
         return ''
 
     _result = ' '
-    _tables = system.config['tables'].split(',')
+    _tables = cfg.tables.split(',')
     for _table in _tables:
         # Validate table name to prevent injection
         _safe_table = sanitize_table_name(_table.strip())
@@ -307,7 +310,8 @@ def generate_mysql_credentials(client: str, force_password: bool = True) -> str:
         # mysqldump/mysql parse this option specially
         credentials = f"--defaults-file={config_path}"
 
-        if system.config.get('verbose', False):
+        cfg = system.get_typed_config()
+        if cfg.verbose:
             output.message(
                 output.host_to_subject(client),
                 f'Using secure credentials file: {config_path}',
@@ -334,13 +338,15 @@ def _generate_mysql_credentials_legacy(client: str, force_password: bool = True)
     :param force_password: Include password in credentials
     :return: MySQL credentials arguments
     """
-    _credentials = '-u\'' + system.config[client]['db']['user'] + '\''
+    cfg = system.get_typed_config()
+    db_cfg = cfg.get_client(client).db
+    _credentials = '-u\'' + db_cfg.user + '\''
     if force_password:
-        _credentials += ' -p\'' + system.config[client]['db']['password'] + '\''
-    if 'host' in system.config[client]['db']:
-        _credentials += ' -h\'' + system.config[client]['db']['host'] + '\''
-    if 'port' in system.config[client]['db']:
-        _credentials += ' -P\'' + str(system.config[client]['db']['port']) + '\''
+        _credentials += ' -p\'' + db_cfg.password + '\''
+    if db_cfg.host:
+        _credentials += ' -h\'' + db_cfg.host + '\''
+    if db_cfg.port:
+        _credentials += ' -P\'' + str(db_cfg.port) + '\''
     return _credentials
 
 
@@ -389,7 +395,8 @@ def check_database_dump(client: str, filepath: str) -> None:
     :param client: Client identifier
     :param filepath: Path to dump file
     """
-    if not system.config['check_dump']:
+    cfg = system.get_typed_config()
+    if not cfg.check_dump:
         return
 
     _cmd = f'{get_dump_cat_command(client, filepath)} | tail -n 1'

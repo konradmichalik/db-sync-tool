@@ -184,6 +184,9 @@ def load_ssh_client(ssh):
     :param ssh: String
     :return:
     """
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(ssh)
+
     _host_name = helper.get_ssh_host_name(ssh, True)
     _ssh_client = paramiko.SSHClient()
     # Load known hosts from system for security (prevents MITM attacks)
@@ -192,20 +195,20 @@ def load_ssh_client(ssh):
     # Note: This does NOT prevent MITM - use RejectPolicy() for strict host verification
     _ssh_client.set_missing_host_key_policy(paramiko.WarningPolicy())
 
-    _ssh_port = system.config[ssh]['port'] if 'port' in system.config[ssh] else 22
+    _ssh_port = client_cfg.port
     _ssh_key = None
     _ssh_password = None
 
     # Check authentication
-    if 'ssh_key' in system.config[ssh]:
+    if client_cfg.ssh_key:
         _authentication_method = f'{output.CliFormat.BLACK} - ' \
                                  f'(authentication: key){output.CliFormat.ENDC}'
-        _ssh_key = system.config[ssh]['ssh_key']
-    elif 'password' in system.config[ssh]:
+        _ssh_key = client_cfg.ssh_key
+    elif client_cfg.password:
         _authentication_method = f'{output.CliFormat.BLACK} - ' \
                                  f'(authentication: password){output.CliFormat.ENDC}'
-        _ssh_password = system.config[ssh]['password']
-    elif 'ssh_agent' in system.config:
+        _ssh_password = client_cfg.password
+    elif cfg.ssh_agent:
         _authentication_method = f'{output.CliFormat.BLACK} - ' \
                                  f'(authentication: key){output.CliFormat.ENDC}'
     else:
@@ -215,8 +218,8 @@ def load_ssh_client(ssh):
 
     # Try to connect to remote client via paramiko
     try:
-        _ssh_client.connect(hostname=system.config[ssh]['host'],
-                            username=system.config[ssh]['user'],
+        _ssh_client.connect(hostname=client_cfg.host,
+                            username=client_cfg.user,
                             key_filename=_ssh_key,
                             password=_ssh_password,
                             port=_ssh_port,
@@ -257,27 +260,32 @@ def get_jump_host_channel(client):
     :param client:
     :return:
     """
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+
     _jump_host_channel = None
-    if 'jump_host' in system.config[client]:
+    if client_cfg.jump_host is not None:
+        jump_host = client_cfg.jump_host
+
         # prepare jump host config
         _jump_host_client = paramiko.SSHClient()
         _jump_host_client.load_system_host_keys()
         _jump_host_client.set_missing_host_key_policy(paramiko.WarningPolicy())
 
-        _jump_host_host = system.config[client]['jump_host']['host']
-        _jump_host_user = system.config[client]['jump_host']['user'] if 'user' in system.config[client]['jump_host'] else system.config[client]['user']
+        _jump_host_host = jump_host.host
+        _jump_host_user = jump_host.user if jump_host.user else client_cfg.user
 
-        if 'ssh_key' in system.config[client]['jump_host']:
-            _jump_host_ssh_key = system.config[client]['jump_host']['ssh_key']
-        elif 'ssh_key' in system.config[client]:
-            _jump_host_ssh_key = system.config[client]['ssh_key']
+        if jump_host.ssh_key:
+            _jump_host_ssh_key = jump_host.ssh_key
+        elif client_cfg.ssh_key:
+            _jump_host_ssh_key = client_cfg.ssh_key
         else:
             _jump_host_ssh_key = None
 
-        if 'port' in system.config[client]['jump_host']:
-            _jump_host_port = system.config[client]['jump_host']['port']
-        elif 'port' in system.config[client]:
-            _jump_host_port = system.config[client]['port']
+        if jump_host.port:
+            _jump_host_port = jump_host.port
+        elif client_cfg.port:
+            _jump_host_port = client_cfg.port
         else:
             _jump_host_port = 22
 
@@ -286,7 +294,7 @@ def get_jump_host_channel(client):
             hostname=_jump_host_host,
             username=_jump_host_user,
             key_filename=_jump_host_ssh_key,
-            password=system.config[client]['jump_host']['password'] if 'password' in system.config[client]['jump_host'] else None,
+            password=jump_host.password,
             port=_jump_host_port,
             compress=True,
             timeout=default_timeout
@@ -299,13 +307,13 @@ def get_jump_host_channel(client):
         _jump_host_transport = _jump_host_client.get_transport()
         _jump_host_channel = _jump_host_transport.open_channel(
             'direct-tcpip',
-            dest_addr=(system.config[client]['host'], 22),
-            src_addr=(system.config[client]['jump_host']['private'] if 'private' in system.config[client]['jump_host'] else system.config[client]['jump_host']['host'], 22)
+            dest_addr=(client_cfg.host, 22),
+            src_addr=(jump_host.private if jump_host.private else jump_host.host, 22)
         )
 
         # print information
         _destination_client = helper.get_ssh_host_name(client, minimal=True)
-        _jump_host_name = system.config[client]['jump_host']['name'] if 'name' in system.config[client]['jump_host'] else _jump_host_host
+        _jump_host_name = jump_host.name if jump_host.name else _jump_host_host
         output.message(
             output.host_to_subject(client),
             f'Initialize remote SSH jump host {output.CliFormat.BLACK}local ➔ {output.CliFormat.BOLD}{_jump_host_name}{output.CliFormat.ENDC}{output.CliFormat.BLACK} ➔ {_destination_client}{output.CliFormat.ENDC}',
