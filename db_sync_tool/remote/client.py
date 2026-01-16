@@ -19,8 +19,12 @@ Modern (recommended):
 """
 
 import sys
+import warnings
 import paramiko
 from db_sync_tool.utility import mode, system, helper, output
+
+# Suppress paramiko warnings about unknown host keys
+warnings.filterwarnings("ignore", message="Unknown.*host key", module="paramiko")
 
 default_timeout = 600
 
@@ -199,7 +203,7 @@ def load_ssh_client(ssh):
         _ssh_key = system.config[ssh]['ssh_key']
     elif 'password' in system.config[ssh]:
         _authentication_method = f'{output.CliFormat.BLACK} - ' \
-                                 f'authentication: password){output.CliFormat.ENDC}'
+                                 f'(authentication: password){output.CliFormat.ENDC}'
         _ssh_password = system.config[ssh]['password']
     elif 'ssh_agent' in system.config:
         _authentication_method = f'{output.CliFormat.BLACK} - ' \

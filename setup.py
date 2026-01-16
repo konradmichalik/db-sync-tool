@@ -34,12 +34,12 @@ setuptools.setup(
     ],
     python_requires='>=3.10',
     install_requires=[
-        "paramiko>=2.11",
-        "pyyaml>=6.0",
-        "jsonschema>=4.2.1",
-        "requests>=2.26.0",
-        "semantic_version>=2.8.5",
-        "yaspin>=2.1"
+        "paramiko>=4.0",
+        "pyyaml>=6.0.2",
+        "jsonschema>=4.20",
+        "requests>=2.31.0",
+        "semantic_version>=2.10.0",
+        "rich>=13.0"
     ],
     entry_points={
         'console_scripts': [

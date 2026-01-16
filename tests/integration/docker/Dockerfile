@@ -19,13 +19,12 @@ RUN apt-get update \
 # Python dependencies
 #
 RUN pip3 install --no-cache-dir \
-    paramiko>=2.12 \
-    future-fstrings>=1.2 \
-    pyyaml>=6.0 \
-    jsonschema>=4.2.1 \
-    requests>=2.28.0 \
-    semantic_version>=2.8.5 \
-    yaspin>=2.3
+    paramiko>=4.0 \
+    pyyaml>=6.0.2 \
+    jsonschema>=4.20 \
+    requests>=2.31.0 \
+    semantic_version>=2.10.0 \
+    rich>=13.0
 
 #
 # MariaDB client configuration (disable SSL for testing)

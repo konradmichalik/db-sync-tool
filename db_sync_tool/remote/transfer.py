@@ -4,7 +4,6 @@
 Transfer script
 """
 
-import sys
 from db_sync_tool.utility import mode, system, helper, output
 from db_sync_tool.database import utility as database_utility
 from db_sync_tool.remote import utility, client, rsync
@@ -70,8 +69,6 @@ def get_origin_database_dump(target_path):
             sftp.get(database_utility.get_dump_gz_path(mode.Client.ORIGIN),
                      target_path + database_utility.database_dump_file_name + '.gz', download_status)
             sftp.close()
-            if not system.config['mute']:
-                print('')
 
     utility.remove_origin_database_dump()
 
@@ -88,20 +85,16 @@ def _transfer_status(sent, size, direction, subject_override=None):
     if system.config['mute']:
         return
 
-    sent_mb = round(float(sent) / 1024 / 1024, 1)
-    size_mb = round(float(size) / 1024 / 1024, 1)
+    from db_sync_tool.utility.console import get_output_manager
+    output_manager = get_output_manager()
 
-    if subject_override:
-        subject = subject_override
-    elif direction == 'downloaded':
-        subject = output.Subject.ORIGIN + output.CliFormat.BLACK + '[REMOTE]' + output.CliFormat.ENDC
-    elif mode.get_sync_mode() == mode.SyncMode.PROXY:
-        subject = output.Subject.LOCAL
-    else:
-        subject = output.Subject.ORIGIN + output.CliFormat.BLACK + '[LOCAL]' + output.CliFormat.ENDC
+    # Track transfer size for final summary
+    if sent == size:
+        output_manager.track_stat("size", size)
 
-    sys.stdout.write(f"{subject} Status: {sent_mb} MB of {size_mb} MB {direction}")
-    sys.stdout.write('\r')
+    # Use OutputManager for progress display
+    msg = "Downloading" if direction == "downloaded" else "Uploading"
+    output_manager.progress(sent, size, msg)
 
 
 def download_status(sent, size):
@@ -153,8 +146,6 @@ def put_origin_database_dump(origin_path):
                      database_utility.get_dump_gz_path(mode.Client.TARGET),
                      upload_status)
             sftp.close()
-            if not system.config['mute']:
-                print('')
 
 
 
