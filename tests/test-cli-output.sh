@@ -43,7 +43,7 @@ if ! docker compose -f integration/docker/docker-compose.yml ps --status running
     docker compose -f integration/docker/docker-compose.yml up -d --wait
 fi
 
-CONFIG="$PROJECT_ROOT/tests/integration/scenario/receiver/typo3/typo3_env.json"
+CONFIG="$PROJECT_ROOT/tests/integration/configs/typo3_env/sync-www1-to-local.json"
 echo "Running: python3 -m db_sync_tool -f $CONFIG --output $OUTPUT_MODE $EXTRA_ARGS"
 echo ""
 
