@@ -64,6 +64,8 @@ def check_configuration_drush(client):
         client,
         True
     )
+    if not stdout:
+        raise RuntimeError('Failed to read Drupal configuration via drush')
 
     _db_config = parse_database_credentials(json.loads(stdout))
 
@@ -98,21 +100,23 @@ def get_setting_value(client, key, path):
     :return: String
     """
     # Try single quotes first, then double quotes
-    result = mode.run_command(
+    cmd_result = mode.run_command(
         helper.get_command(client, 'sed') +
         f' -n "s/.*\'{key}\' *=> *[\'\\"]\\([^\'\\"]*\\)[\'\\"].*/\\1/p" {path} | head -1',
         client,
         True
-    ).strip()
+    )
+    result = cmd_result.strip() if cmd_result else ''
 
     # For numeric values like port (without quotes)
     if not result:
-        result = mode.run_command(
+        cmd_result = mode.run_command(
             helper.get_command(client, 'sed') +
             f' -n "s/.*\'{key}\' *=> *\\([0-9]*\\).*/\\1/p" {path} | head -1',
             client,
             True
-        ).strip()
+        )
+        result = cmd_result.strip() if cmd_result else ''
 
     return result
 

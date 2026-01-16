@@ -36,9 +36,10 @@ def get_database_setting(client, name, file):
     :param file: String
     :return:
     """
-    return mode.run_command(
+    result = mode.run_command(
         helper.get_command(client, 'sed') +
         f' -n "s/define( *\'{name}\', *\'\([^\']*\)\'.*/\\1/p" {file}',
         client,
         True
-    ).replace('\n', '')
+    )
+    return result.replace('\n', '') if result else ''
