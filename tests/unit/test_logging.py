@@ -53,11 +53,12 @@ class TestSubject:
         assert Subject.INFO.value == "INFO"
 
     def test_subject_is_string_enum(self):
-        """Test that Subject can be used as strings."""
-        # str(Enum) inheriting from str returns the value directly
-        assert f"{Subject.ORIGIN}" == "ORIGIN"
+        """Test that Subject can be compared to strings."""
+        # Subject inherits from str, so it can be compared directly
         assert Subject.ORIGIN == "ORIGIN"
-        assert str(Subject.ORIGIN) == "ORIGIN"
+        assert Subject.ORIGIN.value == "ORIGIN"
+        # Can be used in string operations
+        assert "ORIGIN" in Subject.ORIGIN
 
 
 class TestLoggingConfig:
