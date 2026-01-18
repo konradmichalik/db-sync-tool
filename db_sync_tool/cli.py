@@ -583,6 +583,11 @@ def main(
     output_format = "quiet" if quiet else output.value
     init_output_manager(format=output_format, verbose=verbose, mute=mute or quiet)
 
+    # Store json_log in system.config for use by log.py and other modules
+    # Import here to avoid circular imports at module level
+    from db_sync_tool.utility import system as sys_module
+    sys_module.config['json_log'] = json_log
+
     # Initialize structured logging
     init_logging(
         verbose=verbose,

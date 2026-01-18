@@ -42,7 +42,7 @@ def init_logger() -> None:
         verbose=1 if cfg.verbose else 0,
         mute=cfg.mute,
         log_file=cfg.log_file,
-        json_logging=False,  # Default to plain text for backward compatibility
+        json_logging=cfg.json_log,
     )
     _initialized = True
 
