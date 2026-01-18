@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 """
-Main script
+Main script - supports both argparse (default) and typer CLI.
+
+Set DB_SYNC_TOOL_USE_TYPER=1 to use the typer-based CLI.
 """
 
 import argparse
@@ -17,7 +19,25 @@ from db_sync_tool.utility.console import init_output_manager
 
 def main(args=None):
     """
-    Main entry point for the command line. Parse the arguments and call to the main process.
+    Main entry point for the command line.
+
+    Uses typer if DB_SYNC_TOOL_USE_TYPER=1 is set, otherwise uses argparse.
+    :param args: Optional arguments dict (only used with argparse)
+    :return:
+    """
+    use_typer = os.environ.get("DB_SYNC_TOOL_USE_TYPER", "0") == "1"
+
+    if use_typer:
+        from db_sync_tool.cli import run
+
+        run()
+    else:
+        _main_argparse(args)
+
+
+def _main_argparse(args=None):
+    """
+    Original argparse-based main function.
     :param args:
     :return:
     """
@@ -28,11 +48,9 @@ def main(args=None):
 
     # Initialize output manager with format settings
     # --quiet flag overrides --output setting
-    output_format = 'quiet' if args.quiet else args.output
+    output_format = "quiet" if args.quiet else args.output
     init_output_manager(
-        format=output_format,
-        verbose=args.verbose,
-        mute=args.mute or args.quiet
+        format=output_format, verbose=args.verbose, mute=args.mute or args.quiet
     )
 
     sync.Sync(
@@ -50,7 +68,7 @@ def main(args=None):
         use_rsync=args.use_rsync,
         use_rsync_options=args.use_rsync_options,
         reverse=args.reverse,
-        args=args
+        args=args,
     )
 
 
