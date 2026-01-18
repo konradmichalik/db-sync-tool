@@ -239,12 +239,17 @@ def _transfer_remote_to_remote(origin_path: str, target_path: str,
     # Build rsync command to run on origin
     excludes = _get_excludes(file_config.exclude)
     options = _get_file_options(file_config)
+    password_env = rsync.get_password_environment(mode.Client.TARGET)
+    auth = rsync.get_authorization(mode.Client.TARGET)
     target_host = f'{cfg.target.user}@{cfg.target.host}:'
 
     command = (
-        f'rsync {options} {rsync.get_authorization(mode.Client.TARGET)} '
+        f'{password_env}rsync {options} {auth} '
         f'{excludes} {origin_path} {target_host}{target_path}'
-    )
+    ).strip()
+
+    # Clean up multiple spaces
+    command = ' '.join(command.split())
 
     mode.run_command(command, mode.Client.ORIGIN, True)
 
