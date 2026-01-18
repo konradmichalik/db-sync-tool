@@ -1,6 +1,10 @@
 #!/bin/bash
 # Run unit tests (no Docker required)
 # Usage: ./run-unit-tests.sh [--cov] [pytest-args]
+#
+# Note: CLI tests (test_cli.py) require typer to be installed.
+# They will be skipped automatically if typer is not available.
+# For full test coverage, install the package first: pip install -e .
 set -e
 
 cd "$(dirname "$0")"
