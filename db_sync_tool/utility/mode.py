@@ -39,75 +39,71 @@ class SyncMode:
 
     @staticmethod
     def is_dump_local() -> bool:
-        return SyncMode.is_full_local() and SyncMode.is_same_host() and not SyncMode.is_sync_local()
+        cfg = system.get_typed_config()
+        both_local = not cfg.origin.is_remote and not cfg.target.is_remote
+        return both_local and SyncMode.is_same_host() and not SyncMode.is_sync_local()
 
     @staticmethod
     def is_dump_remote() -> bool:
-        return SyncMode.is_full_remote() and SyncMode.is_same_host() and \
-               not SyncMode.is_sync_remote()
+        cfg = system.get_typed_config()
+        both_remote = cfg.origin.is_remote and cfg.target.is_remote
+        return both_remote and SyncMode.is_same_host() and not SyncMode.is_sync_remote()
 
     @staticmethod
     def is_receiver() -> bool:
-        return 'host' in system.config[Client.ORIGIN] and not SyncMode.is_proxy() and \
-               not SyncMode.is_sync_remote()
+        cfg = system.get_typed_config()
+        return cfg.origin.is_remote and not SyncMode.is_proxy() and not SyncMode.is_sync_remote()
 
     @staticmethod
     def is_sender() -> bool:
-        return 'host' in system.config[Client.TARGET] and not SyncMode.is_proxy() and \
-               not SyncMode.is_sync_remote()
+        cfg = system.get_typed_config()
+        return cfg.target.is_remote and not SyncMode.is_proxy() and not SyncMode.is_sync_remote()
 
     @staticmethod
     def is_proxy() -> bool:
-        return SyncMode.is_full_remote()
+        cfg = system.get_typed_config()
+        return cfg.origin.is_remote and cfg.target.is_remote
 
     @staticmethod
     def is_import_local() -> bool:
-        return system.config['import'] != '' and 'host' not in system.config[Client.TARGET]
+        cfg = system.get_typed_config()
+        return cfg.import_file != '' and not cfg.target.is_remote
 
     @staticmethod
     def is_import_remote() -> bool:
-        return system.config['import'] != '' and 'host' in system.config[Client.TARGET]
+        cfg = system.get_typed_config()
+        return cfg.import_file != '' and cfg.target.is_remote
 
     @staticmethod
     def is_sync_local() -> bool:
-        return SyncMode.is_full_local() and SyncMode.is_same_host() and SyncMode.is_same_sync()
+        cfg = system.get_typed_config()
+        return (not cfg.origin.is_remote and not cfg.target.is_remote and
+                SyncMode.is_same_host() and SyncMode.is_same_sync())
 
     @staticmethod
     def is_sync_remote() -> bool:
-        return SyncMode.is_full_remote() and SyncMode.is_same_host() and SyncMode.is_same_sync()
+        cfg = system.get_typed_config()
+        return (cfg.origin.is_remote and cfg.target.is_remote and
+                SyncMode.is_same_host() and SyncMode.is_same_sync())
 
     @staticmethod
     def is_same_sync() -> bool:
-        return ((SyncMode.is_available_configuration('path') and
-                 not SyncMode.is_same_configuration('path')) or
-               (SyncMode.is_available_configuration('db') and
-                not SyncMode.is_same_configuration('db')))
-
-    @staticmethod
-    def is_full_remote() -> bool:
-        return SyncMode.is_available_configuration('host')
-
-    @staticmethod
-    def is_full_local() -> bool:
-        return SyncMode.is_unavailable_configuration('host')
+        cfg = system.get_typed_config()
+        # Different paths on same host
+        if cfg.origin.path and cfg.target.path and cfg.origin.path != cfg.target.path:
+            return True
+        # Different databases on same host
+        if cfg.origin.db.name and cfg.target.db.name:
+            if (cfg.origin.db.name, cfg.origin.db.host) != (cfg.target.db.name, cfg.target.db.host):
+                return True
+        return False
 
     @staticmethod
     def is_same_host() -> bool:
-        return SyncMode.is_same_configuration('host') and SyncMode.is_same_configuration('port') and SyncMode.is_same_configuration('user')
-
-    @staticmethod
-    def is_available_configuration(key: str) -> bool:
-        return key in system.config[Client.ORIGIN] and key in system.config[Client.TARGET]
-
-    @staticmethod
-    def is_unavailable_configuration(key: str) -> bool:
-        return key not in system.config[Client.ORIGIN] and key not in system.config[Client.TARGET]
-
-    @staticmethod
-    def is_same_configuration(key: str) -> bool:
-        return (SyncMode.is_available_configuration(key) and
-               system.config[Client.ORIGIN][key] == system.config[Client.TARGET][key]) or \
-               SyncMode.is_unavailable_configuration(key)
+        cfg = system.get_typed_config()
+        return (cfg.origin.host == cfg.target.host and
+                cfg.origin.port == cfg.target.port and
+                cfg.origin.user == cfg.target.user)
 
 
 # Default sync mode
@@ -149,14 +145,15 @@ def check_sync_mode() -> None:
             sync_mode = _mode
             _description = _desc
 
+    cfg = system.get_typed_config()
     if is_import():
         output.message(
             output.Subject.INFO,
-            f'Import file {output.CliFormat.BLACK}{system.config["import"]}{output.CliFormat.ENDC}',
+            f'Import file {output.CliFormat.BLACK}{cfg.import_file}{output.CliFormat.ENDC}',
             True
         )
 
-    system.config['is_same_client'] = SyncMode.is_same_host()
+    system.set_is_same_client(SyncMode.is_same_host())
 
     output.message(
         output.Subject.INFO,
@@ -224,7 +221,8 @@ def run_command(command: str, client: str, force_output: bool = False,
     :param skip_dry_run: Boolean
     :return: Command output or None
     """
-    if system.config['verbose']:
+    cfg = system.get_typed_config()
+    if cfg.verbose:
         # Sanitize command to prevent credentials from appearing in logs
         _safe_command = sanitize_command_for_logging(command)
         output.message(
@@ -233,7 +231,7 @@ def run_command(command: str, client: str, force_output: bool = False,
             debug=True
         )
 
-    if system.config['dry_run'] and skip_dry_run:
+    if cfg.dry_run and skip_dry_run:
         return None
 
     if is_remote(client):
@@ -260,9 +258,10 @@ def check_for_protection() -> None:
     """
     Check if the target system is protected and exit if so.
     """
+    cfg = system.get_typed_config()
     if sync_mode in (SyncMode.RECEIVER, SyncMode.SENDER, SyncMode.PROXY, SyncMode.SYNC_LOCAL,
                      SyncMode.SYNC_REMOTE, SyncMode.IMPORT_LOCAL, SyncMode.IMPORT_REMOTE) and \
-            'protect' in system.config[Client.TARGET]:
+            cfg.target.protect:
         _host = helper.get_ssh_host_name(Client.TARGET)
         raise DbSyncError(
             f'The host {_host} is protected against the import of a database dump. '

@@ -53,10 +53,10 @@ def _get_list(data: dict, key: str, fallback_key: str | None = None) -> list:
 class DatabaseConfig:
     """Database connection configuration."""
     name: str = ''
-    host: str = 'localhost'
+    host: str = ''
     user: str = ''
     password: str = ''
-    port: int = 3306
+    port: int = 0  # 0 means use default (3306 for MySQL)
 
     @classmethod
     def from_dict(cls, data: dict | None) -> 'DatabaseConfig':
@@ -65,10 +65,10 @@ class DatabaseConfig:
             return cls()
         return cls(
             name=_get(data, 'name', ''),
-            host=_get(data, 'host', 'localhost'),
+            host=_get(data, 'host', ''),
             user=_get(data, 'user', ''),
             password=_get(data, 'password', ''),
-            port=_get_int(data, 'port', 3306),
+            port=_get_int(data, 'port', 0),
         )
 
 
@@ -115,6 +115,11 @@ class ClientConfig:
     jump_host: JumpHostConfig | None = None
     after_dump: str | None = None
     post_sql: list[str] = field(default_factory=list)
+    # Dynamic fields for framework-specific features
+    console: dict[str, str] = field(default_factory=dict)
+    scripts: dict[str, str] = field(default_factory=dict)
+    protect: bool = False
+    link: str = ''
 
     @classmethod
     def from_dict(cls, data: dict | None) -> 'ClientConfig':
@@ -135,6 +140,10 @@ class ClientConfig:
             jump_host=JumpHostConfig.from_dict(data.get('jump_host')),
             after_dump=data.get('after_dump'),  # None is valid
             post_sql=_get_list(data, 'post_sql'),
+            console=data.get('console') or {},
+            scripts=data.get('scripts') or {},
+            protect=_get(data, 'protect', False),
+            link=_get(data, 'link', ''),
         )
 
     @property
@@ -151,6 +160,7 @@ class SyncConfig:
     mute: bool = False
     dry_run: bool = False
     yes: bool = False
+    reverse: bool = False
 
     # Dump options
     keep_dump: bool = False
@@ -176,6 +186,8 @@ class SyncConfig:
     # SSH options
     ssh_agent: bool = False
     force_password: bool = False
+    ssh_password_origin: str | None = None
+    ssh_password_target: str | None = None
 
     # Host linking
     link_hosts: str = ''
@@ -187,13 +199,25 @@ class SyncConfig:
     is_same_client: bool = False
     default_origin_dump_dir: bool = True
     default_target_dump_dir: bool = True
+    log_file: str | None = None
 
     # Framework type
     type: str | None = None
 
+    # Global scripts
+    scripts: dict[str, str] = field(default_factory=dict)
+
     # Client configurations
     origin: ClientConfig = field(default_factory=ClientConfig)
     target: ClientConfig = field(default_factory=ClientConfig)
+
+    def get_client(self, client: str) -> ClientConfig:
+        """Get origin or target config by client identifier."""
+        if client == 'origin':
+            return self.origin
+        elif client == 'target':
+            return self.target
+        raise ValueError(f"Unknown client: {client}")
 
     @classmethod
     def from_dict(cls, data: dict) -> 'SyncConfig':
@@ -203,12 +227,15 @@ class SyncConfig:
         :param data: Legacy config dictionary
         :return: SyncConfig instance
         """
+        # Extract SSH passwords from nested dict if present
+        ssh_passwords = data.get('ssh_password', {})
         return cls(
             # General options
             verbose=_get(data, 'verbose', False),
             mute=_get(data, 'mute', False),
             dry_run=_get(data, 'dry_run', False),
             yes=_get(data, 'yes', False),
+            reverse=_get(data, 'reverse', False),
             # Dump options
             keep_dump=_get(data, 'keep_dump', False),
             dump_name=_get(data, 'dump_name', ''),
@@ -228,6 +255,8 @@ class SyncConfig:
             # SSH options
             ssh_agent=_get(data, 'ssh_agent', False),
             force_password=_get(data, 'force_password', False),
+            ssh_password_origin=ssh_passwords.get('origin'),
+            ssh_password_target=ssh_passwords.get('target'),
             # Host linking
             link_hosts=_get(data, 'link_hosts', ''),
             link_origin=data.get('link_origin'),  # None is valid
@@ -237,8 +266,11 @@ class SyncConfig:
             is_same_client=_get(data, 'is_same_client', False),
             default_origin_dump_dir=_get(data, 'default_origin_dump_dir', True),
             default_target_dump_dir=_get(data, 'default_target_dump_dir', True),
+            log_file=data.get('log_file'),  # None is valid
             # Framework type
             type=data.get('type'),  # None is valid
+            # Global scripts
+            scripts=data.get('scripts') or {},
             # Client configurations
             origin=ClientConfig.from_dict(data.get('origin')),
             target=ClientConfig.from_dict(data.get('target')),

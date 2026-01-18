@@ -9,22 +9,23 @@ from db_sync_tool.utility import mode, system, helper
 
 def check_configuration(client):
     """
-    Checking Drupal database configuration
+    Checking WordPress database configuration
     :param client: String
     :return:
     """
-    _path = system.config[client]['path']
+    cfg = system.get_typed_config()
+    _path = cfg.get_client(client).path
 
     _db_config = {
-        'name': get_database_setting(client, 'DB_NAME', system.config[client]['path']),
-        'host': get_database_setting(client, 'DB_HOST', system.config[client]['path']),
-        'password': get_database_setting(client, 'DB_PASSWORD', system.config[client]['path']),
-        'port': get_database_setting(client, 'DB_PORT', system.config[client]['path'])
-        if get_database_setting(client, 'DB_PORT', system.config[client]['path']) != '' else 3306,
-        'user': get_database_setting(client, 'DB_USER', system.config[client]['path']),
+        'name': get_database_setting(client, 'DB_NAME', _path),
+        'host': get_database_setting(client, 'DB_HOST', _path),
+        'password': get_database_setting(client, 'DB_PASSWORD', _path),
+        'port': get_database_setting(client, 'DB_PORT', _path)
+        if get_database_setting(client, 'DB_PORT', _path) != '' else 3306,
+        'user': get_database_setting(client, 'DB_USER', _path),
     }
 
-    system.config[client]['db'] = helper.clean_db_config(_db_config)
+    system.set_database_config(client, helper.clean_db_config(_db_config))
 
 
 def get_database_setting(client, name, file):

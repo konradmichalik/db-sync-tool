@@ -28,14 +28,13 @@ def init_logger():
     logger = logging.getLogger('db_sync_tool')
     logger.setLevel(logging.DEBUG)
 
-    if system.config:
-        if 'log_file' in system.config:
-            fh = logging.FileHandler(system.config['log_file'])
-            fh.setLevel(logging.DEBUG)
-            logger.addHandler(fh)
-            formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-            fh.setFormatter(formatter)
-            logger.addHandler(fh)
+    cfg = system.get_typed_config()
+    if cfg.log_file:
+        fh = logging.FileHandler(cfg.log_file)
+        fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
 
 
 def get_logger():

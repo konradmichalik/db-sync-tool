@@ -9,11 +9,14 @@ import os
 import getpass
 import secrets
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
 from db_sync_tool.utility.exceptions import ConfigError
 from db_sync_tool.remote import utility as remote_utility
+
+if TYPE_CHECKING:
+    from db_sync_tool.utility.config import SyncConfig
 
 #
 # GLOBALS
@@ -48,6 +51,71 @@ config: dict[str, Any] = {
     'where': '',
     'additional_mysqldump_options': ''
 }
+
+# Typed configuration (single source of truth after migration)
+_typed_config: 'SyncConfig | None' = None
+
+
+def get_typed_config() -> 'SyncConfig':
+    """
+    Get current configuration as typed SyncConfig object.
+
+    :return: SyncConfig instance
+    """
+    global _typed_config
+    if _typed_config is None:
+        from db_sync_tool.utility.config import SyncConfig
+        _typed_config = SyncConfig.from_dict(config)
+    return _typed_config
+
+
+def refresh_typed_config() -> None:
+    """
+    Refresh typed config after dict changes.
+
+    Call this after modifying system.config to keep _typed_config in sync.
+    This is needed during the migration phase where both dict and dataclass
+    are used.
+    """
+    global _typed_config
+    from db_sync_tool.utility.config import SyncConfig
+    _typed_config = SyncConfig.from_dict(config)
+
+
+def _set_config_value(key: str, value, client: str | None = None) -> None:
+    """
+    Set a configuration value and refresh typed config.
+
+    :param key: Configuration key
+    :param value: Value to set
+    :param client: Optional client identifier for nested config
+    """
+    if client:
+        config.setdefault(client, {})[key] = value
+    else:
+        config[key] = value
+    refresh_typed_config()
+
+
+def set_database_config(client: str, db_config: dict) -> None:
+    """Set database configuration for a client."""
+    _set_config_value('db', db_config, client)
+
+
+def set_framework_type(type_name: str) -> None:
+    """Set the framework type."""
+    _set_config_value('type', type_name)
+
+
+def set_is_same_client(value: bool) -> None:
+    """Set is_same_client flag."""
+    _set_config_value('is_same_client', value)
+
+
+def set_use_sshpass(value: bool) -> None:
+    """Set use_sshpass flag."""
+    _set_config_value('use_sshpass', value)
+
 
 #
 # DEFAULTS
@@ -139,6 +207,10 @@ def get_configuration(host_config, args = {}):
         raise ConfigError(
             'Configuration is missing, use a separate file or provide host parameter'
         )
+
+    # Refresh typed config after all configuration is loaded
+    refresh_typed_config()
+
     helper.run_script(script='before')
     log.get_logger().info('Starting db_sync_tool')
 
@@ -440,7 +512,7 @@ def check_args_options(config_file=None,
 
 def reverse_hosts():
     """
-    Checking authorization for clients
+    Reverse origin and target hosts if --reverse flag is set.
     :return:
     """
     if config['reverse']:
@@ -449,6 +521,9 @@ def reverse_hosts():
 
         config[mode.Client.ORIGIN] = _target
         config[mode.Client.TARGET] = _origin
+
+        # Refresh typed config after swapping
+        refresh_typed_config()
 
         output.message(
             output.Subject.INFO,

@@ -22,7 +22,8 @@ def remove_origin_database_dump(keep_compressed_file=False):
         True
     )
 
-    if system.config['dry_run']:
+    cfg = system.get_typed_config()
+    if cfg.dry_run:
         return
 
     _gz_path = database_utility.get_dump_gz_path(mode.Client.ORIGIN)
@@ -39,10 +40,11 @@ def remove_origin_database_dump(keep_compressed_file=False):
                 os.remove(_gz_path)
 
     if keep_compressed_file:
-        if 'keep_dumps' in system.config[mode.Client.ORIGIN]:
+        origin_cfg = cfg.origin
+        if origin_cfg.keep_dumps is not None:
             helper.clean_up_dump_dir(mode.Client.ORIGIN,
                                      helper.get_dump_dir(mode.Client.ORIGIN) + '*',
-                                     system.config[mode.Client.ORIGIN]['keep_dumps'])
+                                     origin_cfg.keep_dumps)
 
         output.message(
             output.Subject.INFO,
@@ -57,13 +59,14 @@ def remove_target_database_dump():
     Removing the target database dump files
     :return:
     """
+    cfg = system.get_typed_config()
     _file_path = database_utility.get_dump_file_path(mode.Client.TARGET)
     _gz_file_path = database_utility.get_dump_gz_path(mode.Client.TARGET)
 
     #
     # Move dump to specified directory
     #
-    if system.config['keep_dump']:
+    if cfg.keep_dump:
         helper.create_local_temporary_data_dir()
         # Copy the .gz file (streaming compression means only .gz exists)
         # database_dump_file_name is guaranteed to be set at this point
@@ -91,7 +94,7 @@ def remove_target_database_dump():
             True
         )
 
-        if system.config['dry_run']:
+        if cfg.dry_run:
             return
 
         if mode.is_target_remote():

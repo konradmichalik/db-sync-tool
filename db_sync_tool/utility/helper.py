@@ -98,9 +98,10 @@ def get_command(client: str, command: str) -> str:
     :param command: Command name
     :return: String command
     """
-    if 'console' in system.config[client]:
-        if command in system.config[client]['console']:
-            return system.config[client]['console'][command]
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+    if command in client_cfg.console:
+        return client_cfg.console[command]
     return command
 
 
@@ -110,10 +111,17 @@ def get_dump_dir(client: str) -> str:
     :param client: Client identifier
     :return: String path
     """
-    if system.config[f'default_{client}_dump_dir']:
+    cfg = system.get_typed_config()
+    # Check if using default dump dir
+    if client == 'origin':
+        use_default = cfg.default_origin_dump_dir
+    else:
+        use_default = cfg.default_target_dump_dir
+
+    if use_default:
         return '/tmp/'
     else:
-        return system.config[client]['dump_dir']
+        return cfg.get_client(client).dump_dir
 
 
 def check_and_create_dump_dir(client: str, path: str) -> None:
@@ -137,21 +145,24 @@ def get_ssh_host_name(client: str, with_user: bool = False, minimal: bool = Fals
     :param minimal: Return minimal format
     :return: Formatted host name
     """
-    if not 'user' in system.config[client] and not 'host' in system.config[client]:
+    cfg = system.get_typed_config()
+    client_cfg = cfg.get_client(client)
+
+    if not client_cfg.user and not client_cfg.host:
         return ''
 
     if with_user:
-        _host = system.config[client]['user'] + '@' + system.config[client]['host']
+        _host = client_cfg.user + '@' + client_cfg.host
     else:
-        _host = system.config[client]['host']
+        _host = client_cfg.host
 
-    if 'name' in system.config[client]:
+    if client_cfg.name:
         if minimal:
-            return system.config[client]['name']
+            return client_cfg.name
         else:
-            return output.CliFormat.BOLD + system.config[client][
-                'name'] + output.CliFormat.ENDC + output.CliFormat.BLACK + ' (' + _host + ')' + \
-               output.CliFormat.ENDC
+            return (output.CliFormat.BOLD + client_cfg.name +
+                    output.CliFormat.ENDC + output.CliFormat.BLACK +
+                    ' (' + _host + ')' + output.CliFormat.ENDC)
     else:
         return _host
 
@@ -160,8 +171,9 @@ def create_local_temporary_data_dir() -> None:
     """
     Create local temporary data dir with secure permissions
     """
+    cfg = system.get_typed_config()
     # Skip secure permissions for user-specified keep_dump directories
-    if system.config['keep_dump']:
+    if cfg.keep_dump:
         if not os.path.exists(system.default_local_sync_path):
             os.makedirs(system.default_local_sync_path)
     else:
@@ -186,25 +198,27 @@ def run_script(client: str | None = None, script: str = 'before') -> None:
     :param client: Client identifier (or None for global scripts)
     :param script: Script name ('before', 'after', 'error')
     """
+    cfg = system.get_typed_config()
+
     if client is None:
-        _config = system.config
+        # Global scripts
+        scripts_dict = cfg.scripts
         _subject = output.Subject.LOCAL
         client = mode.Client.LOCAL
     else:
-        _config = system.config[client]
+        # Client-specific scripts
+        client_cfg = cfg.get_client(client)
+        scripts_dict = client_cfg.scripts
         _subject = output.host_to_subject(client)
 
-    if not 'scripts' in _config:
-        return
-
-    if f'{script}' in _config['scripts']:
+    if script in scripts_dict:
         output.message(
             _subject,
             f'Running script {client}',
             True
         )
         mode.run_command(
-            _config['scripts'][script],
+            scripts_dict[script],
             client
         )
 
@@ -248,7 +262,7 @@ def check_sshpass_version() -> bool | None:
     version = _check_tool_version('sshpass', '-V')
     if version:
         output.message(output.Subject.LOCAL, f'sshpass version {version}')
-        system.config['use_sshpass'] = True
+        system.set_use_sshpass(True)
         return True
     return None
 

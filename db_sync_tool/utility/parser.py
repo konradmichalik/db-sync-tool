@@ -47,18 +47,18 @@ def get_database_configuration(client):
     :param client: String
     :return:
     """
-    system.config['db'] = {}
+    cfg = system.get_typed_config()
 
     # check framework type
     _base = ''
 
     automatic_type_detection()
 
-    if 'type' in system.config and (
-            'path' in system.config[mode.Client.ORIGIN] or
-            'path' in system.config[mode.Client.TARGET]
-    ):
-        _type = system.config['type'].lower()
+    # Re-get config after type detection may have updated it
+    cfg = system.get_typed_config()
+
+    if cfg.type and (cfg.origin.path != '' or cfg.target.path != ''):
+        _type = cfg.type.lower()
         if _type == 'typo3':
             # TYPO3 sync base
             _base = Framework.TYPO3
@@ -76,7 +76,7 @@ def get_database_configuration(client):
             _base = Framework.LARAVEL
         else:
             raise ConfigError(f'Framework type not supported: {_type}')
-    elif 'db' in system.config['origin'] or 'db' in system.config['target']:
+    elif cfg.origin.db.name != '' or cfg.target.db.name != '':
         _base = Framework.MANUAL
     else:
         raise ConfigError('Missing framework type or database credentials')
@@ -133,7 +133,8 @@ def load_parser(client, parser):
     :param parser:
     :return:
     """
-    _path = system.config[client]['path']
+    cfg = system.get_typed_config()
+    _path = cfg.get_client(client).path
 
     output.message(
         output.host_to_subject(client),
@@ -163,6 +164,9 @@ def validate_database_credentials(client):
     :param client: String
     :return:
     """
+    cfg = system.get_typed_config()
+    db_cfg = cfg.get_client(client).db
+
     output.message(
         output.host_to_subject(client),
         'Validating database credentials',
@@ -171,11 +175,8 @@ def validate_database_credentials(client):
     _db_credential_keys = ['name', 'host', 'password', 'user']
 
     for _key in _db_credential_keys:
-        if _key not in system.config[client]['db']:
-            raise ValidationError(
-                f'Missing database credential "{_key}" for {client} client'
-            )
-        if system.config[client]['db'][_key] is None or system.config[client]['db'][_key] == '':
+        _value = getattr(db_cfg, _key, None)
+        if _value is None or _value == '':
             raise ValidationError(
                 f'Missing database credential "{_key}" for {client} client'
             )
@@ -191,25 +192,28 @@ def automatic_type_detection():
     """
     Detects the framework type by the provided path using the default mapping
     """
-    if 'type' in system.config or 'db' in system.config['origin'] or 'db' in system.config[
-        'target']:
+    cfg = system.get_typed_config()
+
+    # Skip if type is already set or manual db config is provided
+    if cfg.type or cfg.origin.db.name != '' or cfg.target.db.name != '':
         return
 
-    type = None
+    detected_type = None
     file = None
 
     for _client in [mode.Client.ORIGIN, mode.Client.TARGET]:
-        if 'path' in system.config[_client]:
-            file = helper.get_file_from_path(system.config[_client]['path'])
+        client_cfg = cfg.get_client(_client)
+        if client_cfg.path != '':
+            file = helper.get_file_from_path(client_cfg.path)
             for _key, _files in mapping.items():
                 if file in _files:
-                    type = _key
+                    detected_type = _key
 
-    if type:
+    if detected_type:
         output.message(
             output.Subject.LOCAL,
             f'Automatic framework type detection '
             f'{output.CliFormat.BLACK}{file}{output.CliFormat.ENDC}',
             verbose_only=True
         )
-        system.config['type'] = type
+        system.set_framework_type(detected_type)

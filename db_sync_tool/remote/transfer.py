@@ -14,6 +14,7 @@ def transfer_origin_database_dump():
     Transfer the origin database dump files
     :return:
     """
+    cfg = system.get_typed_config()
     if not mode.is_import():
         if mode.get_sync_mode() == mode.SyncMode.RECEIVER:
             get_origin_database_dump(helper.get_dump_dir(mode.Client.TARGET))
@@ -29,7 +30,7 @@ def transfer_origin_database_dump():
             put_origin_database_dump(system.default_local_sync_path)
         elif mode.get_sync_mode() == mode.SyncMode.SYNC_REMOTE or mode.get_sync_mode() == mode.SyncMode.SYNC_LOCAL:
             system.check_target_configuration()
-        elif system.config['is_same_client']:
+        elif cfg.is_same_client:
             utility.remove_origin_database_dump(True)
     else:
         system.check_target_configuration()
@@ -41,6 +42,7 @@ def get_origin_database_dump(target_path):
     :param target_path: String
     :return:
     """
+    cfg = system.get_typed_config()
     output.message(
         output.Subject.ORIGIN,
         'Downloading database dump',
@@ -49,16 +51,16 @@ def get_origin_database_dump(target_path):
     if mode.get_sync_mode() != mode.SyncMode.PROXY:
         helper.check_and_create_dump_dir(mode.Client.TARGET, target_path)
 
-    if not system.config['dry_run']:
+    if not cfg.dry_run:
         _remotepath = database_utility.get_dump_gz_path(mode.Client.ORIGIN)
         _localpath = target_path
 
-        if system.config['use_rsync']:
+        if cfg.use_rsync:
             rsync.run_rsync_command(
                 remote_client=mode.Client.ORIGIN,
                 origin_path=_remotepath,
                 target_path=_localpath,
-                origin_ssh=system.config[mode.Client.ORIGIN]['user'] + '@' + system.config[mode.Client.ORIGIN]['host']
+                origin_ssh=cfg.origin.user + '@' + cfg.origin.host
             )
         else:
             #
@@ -82,7 +84,8 @@ def _transfer_status(sent, size, direction, subject_override=None):
     :param direction: 'downloaded' or 'uploaded'
     :param subject_override: Optional subject prefix override
     """
-    if system.config['mute']:
+    cfg = system.get_typed_config()
+    if cfg.mute:
         return
 
     from db_sync_tool.utility.console import get_output_manager
@@ -113,6 +116,7 @@ def put_origin_database_dump(origin_path):
     :param origin_path: String
     :return:
     """
+    cfg = system.get_typed_config()
     if mode.get_sync_mode() == mode.SyncMode.PROXY:
         _subject = output.Subject.LOCAL
     else:
@@ -125,16 +129,16 @@ def put_origin_database_dump(origin_path):
     )
     helper.check_and_create_dump_dir(mode.Client.TARGET, helper.get_dump_dir(mode.Client.TARGET))
 
-    if not system.config['dry_run']:
+    if not cfg.dry_run:
         _localpath = origin_path + database_utility.database_dump_file_name + '.gz'
         _remotepath = helper.get_dump_dir(mode.Client.TARGET) + '/'
 
-        if system.config['use_rsync']:
+        if cfg.use_rsync:
             rsync.run_rsync_command(
                 remote_client=mode.Client.TARGET,
                 origin_path=_localpath,
                 target_path=_remotepath,
-                target_ssh=system.config[mode.Client.TARGET]['user'] + '@' + system.config[mode.Client.TARGET]['host']
+                target_ssh=cfg.target.user + '@' + cfg.target.host
             )
         else:
             #
