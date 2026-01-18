@@ -23,7 +23,7 @@ try:
         HOSTS_FILE,
         DEFAULTS_FILE,
     )
-    from db_sync_tool.utility.exceptions import ConfigError
+    from db_sync_tool.utility.exceptions import ConfigError, NoConfigFoundError
     DEPS_AVAILABLE = True
 except ImportError:
     DEPS_AVAILABLE = False
@@ -37,6 +37,7 @@ except ImportError:
     HOSTS_FILE = 'hosts.yaml'
     DEFAULTS_FILE = 'defaults.yaml'
     ConfigError = Exception
+    NoConfigFoundError = Exception
 
 pytestmark = pytest.mark.skipif(
     not DEPS_AVAILABLE,
@@ -559,12 +560,12 @@ production:
 
     @pytest.mark.unit
     def test_resolve_no_config_non_interactive(self, tmp_path, monkeypatch):
-        """Raise error when no config found and interactive disabled."""
+        """Raise NoConfigFoundError when no config found and interactive disabled."""
         monkeypatch.chdir(tmp_path)
         resolver = ConfigResolver()
         resolver._global_dir = tmp_path / "empty"
 
-        with pytest.raises(ConfigError) as exc:
+        with pytest.raises(NoConfigFoundError) as exc:
             resolver.resolve(interactive=False)
 
         assert "Configuration is missing" in str(exc.value)
