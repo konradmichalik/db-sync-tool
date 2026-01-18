@@ -56,7 +56,9 @@ class TestSubject:
         """Test that Subject can be compared to strings."""
         # Subject inherits from str, so it can be compared directly
         assert Subject.ORIGIN == "ORIGIN"
-        assert Subject.ORIGIN.value == "ORIGIN"
+        # String conversion yields the value, not "Subject.ORIGIN"
+        assert f"{Subject.ORIGIN}" == "ORIGIN"
+        assert str(Subject.ORIGIN) == "ORIGIN"
         # Can be used in string operations
         assert "ORIGIN" in Subject.ORIGIN
 

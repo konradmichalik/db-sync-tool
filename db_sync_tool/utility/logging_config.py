@@ -43,6 +43,10 @@ class Subject(str, Enum):
     LOCAL = "LOCAL"
     INFO = "INFO"
 
+    def __str__(self) -> str:
+        """Return the value for string conversion (StrEnum behavior)."""
+        return self.value
+
 
 class SyncLogRecord(logging.LogRecord):
     """Extended LogRecord with sync-specific fields."""
