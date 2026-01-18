@@ -22,6 +22,7 @@ db_sync_tool [OPTIONS] [ORIGIN] [TARGET]
 | `--config-file` | `-f` | Path to configuration file |
 | `--host-file` | `-o` | Using an additional hosts file |
 | `--log-file` | `-l` | File path for creating an additional log file |
+| `--json-log` | `-jl` | Use JSON format for log file output (structured logging) |
 
 ## Output Options
 
@@ -51,36 +52,81 @@ db_sync_tool [OPTIONS] [ORIGIN] [TARGET]
 | `--clear-database` | `-cd` | Drop all tables before importing |
 | `--tables` | `-ta` | Specific tables to export (e.g., `--tables=t1,t2`) |
 | `--where` | `-w` | WHERE clause for partial sync |
+| `--additional-mysqldump-options` | `-amo` | Additional mysqldump options |
+
+## Framework Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--type` | `-t` | Framework type: `TYPO3`, `SYMFONY`, `DRUPAL`, `WORDPRESS`, `LARAVEL` |
+
+## Transfer Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--use-rsync` | `-ur` | Use rsync as transfer method |
+| `--use-rsync-options` | `-uro` | Additional rsync options |
+
+## File Transfer Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--with-files` | `-wf` | Enable file synchronization (requires 'files' section in config) |
+| `--files-only` | `-fo` | Sync only files, skip database synchronization |
 
 ## Origin Client Options
 
 | Option | Short | Description |
 |--------|-------|-------------|
+| `--origin-path` | `-op` | Path to database credential file |
+| `--origin-name` | `-on` | Providing a name for the origin system |
 | `--origin-host` | `-oh` | SSH host to origin system |
 | `--origin-user` | `-ou` | SSH user for origin system |
-| `--origin-path` | `-op` | Path to database credential file |
+| `--origin-password` | `-opw` | SSH password for origin system |
+| `--origin-key` | `-ok` | File path to SSH key for origin system |
+| `--origin-port` | `-opo` | SSH port for origin system |
+| `--origin-dump-dir` | `-odd` | Directory path for database dump file on origin |
+| `--origin-keep-dumps` | `-okd` | Keep dump file count for origin system |
+
+## Origin Database Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
 | `--origin-db-name` | `-odn` | Database name for origin system |
 | `--origin-db-host` | `-odh` | Database host for origin system |
 | `--origin-db-user` | `-odu` | Database user for origin system |
-| `--origin-db-password` | `-odp` | Database password for origin system |
+| `--origin-db-password` | `-odpw` | Database password for origin system |
+| `--origin-db-port` | `-odpo` | Database port for origin system |
 
 ## Target Client Options
 
 | Option | Short | Description |
 |--------|-------|-------------|
+| `--target-path` | `-tp` | Path to database credential file |
+| `--target-name` | `-tn` | Providing a name for the target system |
 | `--target-host` | `-th` | SSH host to target system |
 | `--target-user` | `-tu` | SSH user for target system |
-| `--target-path` | `-tp` | Path to database credential file |
+| `--target-password` | `-tpw` | SSH password for target system |
+| `--target-key` | `-tk` | File path to SSH key for target system |
+| `--target-port` | `-tpo` | SSH port for target system |
+| `--target-dump-dir` | `-tdd` | Directory path for database dump file on target |
+| `--target-keep-dumps` | `-tkd` | Keep dump file count for target system |
+| `--target-after-dump` | `-tad` | Additional dump file to insert after regular import |
+
+## Target Database Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
 | `--target-db-name` | `-tdn` | Database name for target system |
 | `--target-db-host` | `-tdh` | Database host for target system |
 | `--target-db-user` | `-tdu` | Database user for target system |
-| `--target-db-password` | `-tdp` | Database password for target system |
+| `--target-db-password` | `-tdpw` | Database password for target system |
+| `--target-db-port` | `-tdpo` | Database port for target system |
 
 ## Other Options
 
 | Option | Description |
 |--------|-------------|
-| `--type` | Framework type: `TYPO3`, `SYMFONY`, `DRUPAL`, `WORDPRESS`, `LARAVEL` |
 | `--install-completion` | Install shell completion for the current shell |
 | `--show-completion` | Show completion for the current shell |
 | `--version` | Show version and exit |
@@ -148,10 +194,34 @@ db_sync_tool -f config.yaml --reverse
 db_sync_tool -f config.yaml --clear-database
 ```
 
+### Sync with Files
+
+```bash
+db_sync_tool -f config.yaml --with-files
+```
+
+### Sync Only Files (Skip Database)
+
+```bash
+db_sync_tool -f config.yaml --files-only
+```
+
+### Use Rsync Transfer
+
+```bash
+db_sync_tool -f config.yaml --use-rsync
+```
+
 ### CI/CD Mode (No Prompts)
 
 ```bash
 db_sync_tool -f config.yaml -y --output=ci
+```
+
+### JSON Logging
+
+```bash
+db_sync_tool -f config.yaml -l /var/log/sync.log --json-log
 ```
 
 ### Debug Mode
