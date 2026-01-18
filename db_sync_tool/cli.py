@@ -250,6 +250,25 @@ def main(
             rich_help_panel="Transfer",
         ),
     ] = None,
+    # === File Transfer Options ===
+    with_files: Annotated[
+        bool,
+        typer.Option(
+            "--with-files",
+            "-wf",
+            help="Enable file synchronization (requires 'files' section in config)",
+            rich_help_panel="File Transfer",
+        ),
+    ] = False,
+    files_only: Annotated[
+        bool,
+        typer.Option(
+            "--files-only",
+            "-fo",
+            help="Sync only files, skip database synchronization",
+            rich_help_panel="File Transfer",
+        ),
+    ] = False,
     # === Target Client Options ===
     target_path: Annotated[
         str | None,
@@ -548,6 +567,8 @@ def main(
         framework_type=framework_type,
         use_rsync=use_rsync,
         use_rsync_options=use_rsync_options,
+        with_files=with_files,
+        files_only=files_only,
         target_path=target_path,
         target_name=target_name,
         target_host=target_host,
@@ -612,6 +633,8 @@ def main(
         use_rsync=use_rsync,
         use_rsync_options=use_rsync_options,
         reverse=reverse,
+        with_files=with_files,
+        files_only=files_only,
         args=args,
     )
 
