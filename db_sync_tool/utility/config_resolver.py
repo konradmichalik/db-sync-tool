@@ -14,6 +14,7 @@ Lookup order:
 6. Nothing found?                     → Error (as before)
 """
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,8 @@ from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt
 
 from db_sync_tool.utility.exceptions import ConfigError, NoConfigFoundError
+
+logger = logging.getLogger('db_sync_tool.config_resolver')
 
 
 # Directory names
@@ -237,9 +240,11 @@ class ConfigResolver:
             try:
                 project_config = ProjectConfig.from_file(config_file)
                 self._project_configs[project_config.name] = project_config
-            except Exception:
-                # Skip invalid config files
-                pass
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load project config '{config_file}': {e}"
+                )
+                continue
 
         # Also check *.yml files
         for config_file in self.project_config_dir.glob('*.yml'):
@@ -248,8 +253,11 @@ class ConfigResolver:
             try:
                 project_config = ProjectConfig.from_file(config_file)
                 self._project_configs[project_config.name] = project_config
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load project config '{config_file}': {e}"
+                )
+                continue
 
     def resolve(
         self,
