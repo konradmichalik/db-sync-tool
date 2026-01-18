@@ -72,7 +72,6 @@ class LoggingConfig:
     mute: bool = False
     log_file: str | None = None
     json_logging: bool = False
-    log_format: str = "%(asctime)s - %(levelname)s - [%(subject)s] %(message)s"
 
 
 class SyncFormatter(logging.Formatter):
