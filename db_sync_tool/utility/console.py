@@ -174,7 +174,8 @@ class OutputManager:
             # Strip Rich markup for fallback
             import re
             plain = re.sub(r'\[/?[^\]]+\]', '', text)
-            print(plain, **kwargs)
+            # Ensure output is flushed immediately (especially for \r endings)
+            print(plain, flush=True, **kwargs)
 
     def _route_output(
         self,

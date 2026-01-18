@@ -393,7 +393,7 @@ def get_password_by_user(client):
             output.Subject.INFO,
             'SSH password ' + helper.get_ssh_host_name(client, True) + ': ',
             False
-        )
+        ) or ''
     )
 
     while _password.strip() == '':
@@ -408,7 +408,7 @@ def get_password_by_user(client):
                 output.Subject.INFO,
                 'SSH password ' + helper.get_ssh_host_name(client, True) + ': ',
                 False
-            )
+            ) or ''
         )
 
     return _password

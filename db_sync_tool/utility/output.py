@@ -3,11 +3,19 @@
 """
 Output script
 
-This module provides the legacy output interface using Rich.
-For new code, prefer using the console module directly.
+This module provides the legacy output interface using Rich and structured logging.
+For new code, prefer using the logging_config module directly:
+
+    from db_sync_tool.utility.logging_config import get_sync_logger
+
+    logger = get_sync_logger("origin", remote=True)
+    logger.info("Creating database dump")
 """
-from db_sync_tool.utility import log, mode, system
+from __future__ import annotations
+
+from db_sync_tool.utility import mode, system
 from db_sync_tool.utility.console import get_output_manager
+from db_sync_tool.utility.logging_config import get_sync_logger
 
 
 class CliFormat:
@@ -35,74 +43,76 @@ class Subject:
     DEBUG = CliFormat.BLACK + '[DEBUG]' + CliFormat.ENDC
 
 
-# Mapping from Subject constants to subject strings for new OutputManager
+# Mapping from Subject constants to subject strings for structured logging
 _SUBJECT_MAP = {
     Subject.INFO: "INFO",
     Subject.LOCAL: "LOCAL",
     Subject.TARGET: "TARGET",
     Subject.ORIGIN: "ORIGIN",
-    Subject.ERROR: "ERROR",
-    Subject.WARNING: "WARNING",
-    Subject.DEBUG: "DEBUG",
+    Subject.ERROR: "INFO",  # Error level handled separately
+    Subject.WARNING: "INFO",  # Warning level handled separately
+    Subject.DEBUG: "INFO",  # Debug level handled separately
 }
 
 
-def message(header, message, do_print=True, do_log=False, debug=False, verbose_only=False):
+def message(
+    header: str,
+    message: str,
+    do_print: bool = True,
+    do_log: bool = False,
+    debug: bool = False,
+    verbose_only: bool = False,
+) -> str | None:
     """
     Formatting a message for print or log.
 
-    This function maintains backward compatibility while delegating
-    to the new Rich-based OutputManager.
+    This function maintains backward compatibility while using structured logging
+    and delegating console output to the Rich-based OutputManager.
 
-    :param header: Subject prefix (e.g., Subject.ORIGIN)
-    :param message: Message text
-    :param do_print: Whether to print to console
-    :param do_log: Whether to log the message
-    :param debug: Whether this is a debug message
-    :param verbose_only: Only show in verbose mode
-    :return: String message if do_print is False
+    Args:
+        header: Subject prefix (e.g., Subject.ORIGIN)
+        message: Message text
+        do_print: Whether to print to console
+        do_log: Whether to log the message
+        debug: Whether this is a debug message
+        verbose_only: Only show in verbose mode
+
+    Returns:
+        String message if do_print is False, None otherwise
     """
     cfg = system.get_typed_config()
     output_manager = get_output_manager()
 
-    # Logging if explicitly forced or verbose option is active
-    if do_log or cfg.verbose:
-        _message = remove_multiple_elements_from_string([CliFormat.BEIGE,
-                                                         CliFormat.PURPLE,
-                                                         CliFormat.BLUE,
-                                                         CliFormat.YELLOW,
-                                                         CliFormat.GREEN,
-                                                         CliFormat.RED,
-                                                         CliFormat.BLACK,
-                                                         CliFormat.ENDC,
-                                                         CliFormat.BOLD,
-                                                         CliFormat.UNDERLINE], message)
-        if debug:
-            log.get_logger().debug(_message)
-        elif header == Subject.WARNING:
-            log.get_logger().warning(_message)
-        elif header == Subject.ERROR:
-            log.get_logger().error(_message)
-        else:
-            log.get_logger().info(_message)
+    # Clean ANSI codes from message for logging and structured output
+    clean_message = remove_multiple_elements_from_string([
+        CliFormat.BEIGE, CliFormat.PURPLE, CliFormat.BLUE,
+        CliFormat.YELLOW, CliFormat.GREEN, CliFormat.RED,
+        CliFormat.BLACK, CliFormat.ENDC, CliFormat.BOLD,
+        CliFormat.UNDERLINE
+    ], message)
 
-    # Formatting message if mute option is inactive
+    # Get subject and remote status for structured logging
+    subject_str = _SUBJECT_MAP.get(header, "INFO")
+    is_remote = _is_remote_for_header(header)
+
+    # Structured logging if explicitly forced or verbose option is active
+    if do_log or cfg.verbose:
+        logger = get_sync_logger(subject=subject_str, remote=is_remote)
+
+        if debug:
+            logger.debug(clean_message)
+        elif header == Subject.WARNING:
+            logger.warning(clean_message)
+        elif header == Subject.ERROR:
+            logger.error(clean_message)
+        else:
+            logger.info(clean_message)
+
+    # Console output if mute option is inactive
     if (cfg.mute and header == Subject.ERROR) or (not cfg.mute):
         if do_print:
             if not verbose_only or (verbose_only and cfg.verbose):
-                # Determine subject and remote status
-                subject_str = _SUBJECT_MAP.get(header, "INFO")
-                is_remote = _is_remote_for_header(header)
-
-                # Strip ANSI codes from message before passing to OutputManager
-                clean_message = remove_multiple_elements_from_string([
-                    CliFormat.BEIGE, CliFormat.PURPLE, CliFormat.BLUE,
-                    CliFormat.YELLOW, CliFormat.GREEN, CliFormat.RED,
-                    CliFormat.BLACK, CliFormat.ENDC, CliFormat.BOLD,
-                    CliFormat.UNDERLINE
-                ], message)
-
-                # Use new OutputManager
+                # Use new OutputManager for console display
                 if header == Subject.ERROR:
                     output_manager.error(clean_message)
                 elif header == Subject.WARNING:
@@ -114,8 +124,10 @@ def message(header, message, do_print=True, do_log=False, debug=False, verbose_o
                     # Set up step context for success() to use, then show completed
                     output_manager._setup_step(clean_message, subject=subject_str, remote=is_remote)
                     output_manager.success()
+            return None
         else:
             return header + extend_output_by_sync_mode(header, debug) + ' ' + message
+    return None
 
 
 def _is_remote_for_header(header) -> bool:
