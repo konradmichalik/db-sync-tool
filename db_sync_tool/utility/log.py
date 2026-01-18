@@ -32,7 +32,6 @@ def init_logger():
     if cfg.log_file:
         fh = logging.FileHandler(cfg.log_file)
         fh.setLevel(logging.DEBUG)
-        logger.addHandler(fh)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         logger.addHandler(fh)
