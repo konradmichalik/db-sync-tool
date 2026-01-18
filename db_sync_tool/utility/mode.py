@@ -90,9 +90,9 @@ class SyncMode:
     def is_same_sync() -> bool:
         cfg = system.get_typed_config()
         # Different paths or different databases on same host
-        paths_differ = cfg.origin.path and cfg.target.path and cfg.origin.path != cfg.target.path
-        dbs_differ = (cfg.origin.db.name and cfg.target.db.name and
-                      (cfg.origin.db.name, cfg.origin.db.host) != (cfg.target.db.name, cfg.target.db.host))
+        paths_differ = bool(cfg.origin.path and cfg.target.path and cfg.origin.path != cfg.target.path)
+        dbs_differ = bool(cfg.origin.db.name and cfg.target.db.name and
+                          (cfg.origin.db.name, cfg.origin.db.host) != (cfg.target.db.name, cfg.target.db.host))
         return paths_differ or dbs_differ
 
     @staticmethod
