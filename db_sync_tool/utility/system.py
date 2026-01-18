@@ -160,7 +160,7 @@ def get_configuration(host_config, args = {}):
     """
     Checking configuration information by file or dictionary
     :param host_config: Dictionary
-    :param args: Dictionary
+    :param args: Dictionary (or argparse.Namespace with resolved_config attribute)
     :return:
     """
     global config
@@ -197,6 +197,9 @@ def get_configuration(host_config, args = {}):
                 f'Local configuration not found: {config["config_file_path"]}'
             )
 
+    # Apply resolved config from ConfigResolver (if present)
+    _apply_resolved_config(args)
+
     # workaround for argument order handling respecting the linking feature
     build_config(args, True)
     link_configuration_with_hosts()
@@ -215,6 +218,42 @@ def get_configuration(host_config, args = {}):
 
     helper.run_script(script='before')
     log.get_logger().info('Starting db_sync_tool')
+
+
+def _apply_resolved_config(args) -> None:
+    """
+    Apply resolved config from ConfigResolver to the global config.
+
+    :param args: argparse.Namespace or dict that may contain resolved_config
+    """
+    global config
+
+    # Get resolved_config from args (if present)
+    resolved_config = getattr(args, 'resolved_config', None)
+    if resolved_config is None:
+        return
+
+    # Apply merged config first (global defaults + project defaults)
+    if resolved_config.merged_config:
+        for key, value in resolved_config.merged_config.items():
+            if key not in ('origin', 'target'):
+                config[key] = value
+
+    # Apply origin config
+    if resolved_config.origin_config:
+        config[mode.Client.ORIGIN] = {**config[mode.Client.ORIGIN], **resolved_config.origin_config}
+
+    # Apply target config
+    if resolved_config.target_config:
+        config[mode.Client.TARGET] = {**config[mode.Client.TARGET], **resolved_config.target_config}
+
+    # Log the source
+    if resolved_config.source:
+        output.message(
+            output.Subject.INFO,
+            f'Configuration resolved from {resolved_config.source}',
+            True
+        )
 
 
 # Argument mapping: (arg_name, config_path)
