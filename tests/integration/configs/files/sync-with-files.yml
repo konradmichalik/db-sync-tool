@@ -1,0 +1,18 @@
+type: TYPO3
+use_sshpass: true
+
+origin:
+  host: www1
+  user: user
+  password: password
+  path: /var/www/html/tests/integration/fixtures/www1/LocalConfiguration.php
+
+target:
+  path: /var/www/html/tests/integration/fixtures/www2/LocalConfiguration.php
+
+files:
+  - origin: fileadmin/
+    target: fileadmin/
+    exclude:
+      - '_processed_/'
+      - '_temp_/'
