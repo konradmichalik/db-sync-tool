@@ -100,6 +100,27 @@ class JumpHostConfig:
 
 
 @dataclass
+class FileTransferConfig:
+    """Configuration for a single file transfer entry."""
+    origin: str = ''
+    target: str = ''
+    exclude: list[str] = field(default_factory=list)
+    options: str | None = None  # Per-transfer rsync options
+
+    @classmethod
+    def from_dict(cls, data: dict | None) -> 'FileTransferConfig':
+        """Create FileTransferConfig from dict."""
+        if not data:
+            return cls()
+        return cls(
+            origin=_get(data, 'origin', ''),
+            target=_get(data, 'target', ''),
+            exclude=_get_list(data, 'exclude'),
+            options=data.get('options'),  # None is valid
+        )
+
+
+@dataclass
 class ClientConfig:
     """Configuration for origin or target client."""
     path: str = ''
@@ -183,6 +204,12 @@ class SyncConfig:
     use_rsync_options: str | None = None
     use_sshpass: bool = False
 
+    # File transfer options
+    files: list[FileTransferConfig] = field(default_factory=list)
+    files_options: str | None = None  # Global rsync options for file transfer
+    with_files: bool = False  # Enable file sync (opt-in)
+    files_only: bool = False  # Sync only files, skip database
+
     # SSH options
     ssh_agent: bool = False
     force_password: bool = False
@@ -220,6 +247,50 @@ class SyncConfig:
             return self.target
         raise ValueError(f"Unknown client: {client}")
 
+    @staticmethod
+    def _parse_files_config(files_data) -> list['FileTransferConfig']:
+        """
+        Parse files configuration, supporting both new and legacy formats.
+
+        New format (flat list):
+            files:
+              - origin: fileadmin/
+                target: fileadmin/
+
+        Legacy format (nested):
+            files:
+              config:
+                - origin: fileadmin/
+                  target: fileadmin/
+        """
+        if not files_data:
+            return []
+        if isinstance(files_data, dict) and 'config' in files_data:
+            # Legacy format: files.config[]
+            return [FileTransferConfig.from_dict(f) for f in files_data.get('config', [])]
+        if isinstance(files_data, list):
+            # New format: files[]
+            return [FileTransferConfig.from_dict(f) for f in files_data]
+        return []
+
+    @staticmethod
+    def _parse_files_options(files_data, files_options_direct) -> str | None:
+        """
+        Parse files_options, supporting both direct and legacy formats.
+
+        Direct: files_options: '--verbose'
+        Legacy: files: { option: ['--verbose', '--compress'] }
+        """
+        # Direct files_options takes precedence (explicit "" overrides legacy)
+        if files_options_direct is not None:
+            return files_options_direct
+        # Check legacy format
+        if isinstance(files_data, dict) and 'option' in files_data:
+            options = files_data.get('option', [])
+            if options:
+                return ' '.join(options)
+        return None
+
     @classmethod
     def from_dict(cls, data: dict) -> 'SyncConfig':
         """
@@ -253,6 +324,11 @@ class SyncConfig:
             use_rsync=_get(data, 'use_rsync', True),
             use_rsync_options=data.get('use_rsync_options'),  # None is valid
             use_sshpass=_get(data, 'use_sshpass', False),
+            # File transfer options
+            files=cls._parse_files_config(data.get('files')),
+            files_options=cls._parse_files_options(data.get('files'), data.get('files_options')),
+            with_files=_get(data, 'with_files', False),
+            files_only=_get(data, 'files_only', False),
             # SSH options
             ssh_agent=_get(data, 'ssh_agent', False),
             force_password=_get(data, 'force_password', False),

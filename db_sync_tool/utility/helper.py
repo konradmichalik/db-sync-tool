@@ -21,7 +21,10 @@ def clean_up() -> None:
     """
     # Note: MySQL config files are cleaned up in sync.py's finally block
     # to ensure cleanup even on errors
-    if not mode.is_import():
+    cfg = system.get_typed_config()
+
+    # Skip database cleanup for files-only mode or import mode
+    if not mode.is_import() and not cfg.files_only:
         remote_utility.remove_target_database_dump()
         if mode.get_sync_mode() == mode.SyncMode.PROXY:
             remove_temporary_data_dir()
