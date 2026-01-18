@@ -4,6 +4,9 @@
 Unit tests for the typer CLI implementation.
 
 Tests CLI argument parsing, help output, and argument namespace building.
+
+Note: These tests require typer to be installed. They will be skipped
+automatically if typer is not available (e.g., when running with pipx).
 """
 
 import argparse
@@ -11,10 +14,11 @@ import argparse
 import pytest
 
 # Skip all tests in this module if typer is not installed
-typer = pytest.importorskip("typer", reason="typer not installed")
-from typer.testing import CliRunner
+pytest.importorskip("typer", reason="typer not installed")
 
-from db_sync_tool.cli import OutputFormat, _build_args_namespace, app
+from typer.testing import CliRunner  # noqa: E402
+
+from db_sync_tool.cli import OutputFormat, _build_args_namespace, app  # noqa: E402
 
 runner = CliRunner()
 
