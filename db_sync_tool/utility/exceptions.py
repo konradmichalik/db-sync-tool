@@ -11,6 +11,17 @@ class ConfigError(DbSyncError):
     pass
 
 
+class NoConfigFoundError(ConfigError):
+    """No configuration found during auto-discovery.
+
+    This is raised when ConfigResolver cannot find any configuration
+    (no project configs, no global hosts, no explicit file).
+    This is distinct from ConfigError which indicates a problem with
+    an existing config file (parse error, invalid format, etc.).
+    """
+    pass
+
+
 class ParsingError(DbSyncError):
     """Framework configuration parsing errors."""
     pass
