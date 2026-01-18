@@ -550,13 +550,14 @@ def main(
     output_format = "quiet" if quiet else output.value
     init_output_manager(format=output_format, verbose=verbose, mute=mute or quiet)
 
-    # Config resolution: use ConfigResolver if no explicit config file
+    # Config resolution: use ConfigResolver if no explicit config file or host file
     resolved_config = None
     resolved_origin = origin
     resolved_target = target
 
-    if config_file is None and import_file is None:
+    if config_file is None and import_file is None and host_file is None:
         # Use ConfigResolver for auto-discovery
+        # Skip if host_file is provided (use original host linking mechanism)
         console = Console()
         resolver = ConfigResolver(console=console)
 
