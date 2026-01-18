@@ -8,6 +8,8 @@ automatic documentation, and rich help formatting.
 """
 
 import argparse
+import logging
+import traceback
 from enum import Enum
 from typing import Annotated
 
@@ -17,6 +19,7 @@ from rich.console import Console
 from db_sync_tool import sync
 from db_sync_tool.utility.config_resolver import ConfigResolver
 from db_sync_tool.utility.console import init_output_manager
+from db_sync_tool.utility.exceptions import ConfigError, NoConfigFoundError
 from db_sync_tool.utility.logging_config import init_logging
 
 
@@ -579,9 +582,24 @@ def main(
                 resolved_origin = None
                 resolved_target = None
 
-        except Exception:
-            # ConfigResolver couldn't find config, fall through to original behavior
+        except NoConfigFoundError:
+            # No auto-discovery config found, fall through to original behavior
+            # This is expected when no .db-sync-tool/ or ~/.db-sync-tool/ exists
             pass
+        except ConfigError:
+            # Config was found but has errors (invalid YAML, missing host, etc.)
+            # Re-raise to let the user know about the problem
+            raise
+        except Exception as e:
+            # Unexpected error during config resolution
+            # Log with details in verbose mode, then re-raise
+            logger = logging.getLogger('db_sync_tool')
+            error_msg = f"Unexpected error during config resolution: {e}"
+            if verbose >= 2:
+                logger.error(f"{error_msg}\n{traceback.format_exc()}")
+            elif verbose >= 1:
+                logger.error(error_msg)
+            raise
 
     # Build args namespace for compatibility with existing code
     args = _build_args_namespace(
