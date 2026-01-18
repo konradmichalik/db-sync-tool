@@ -200,6 +200,7 @@ class SyncConfig:
     default_origin_dump_dir: bool = True
     default_target_dump_dir: bool = True
     log_file: str | None = None
+    json_log: bool = False  # Use JSON format for log file output
 
     # Framework type
     type: str | None = None
@@ -267,6 +268,7 @@ class SyncConfig:
             default_origin_dump_dir=_get(data, 'default_origin_dump_dir', True),
             default_target_dump_dir=_get(data, 'default_target_dump_dir', True),
             log_file=data.get('log_file'),  # None is valid
+            json_log=_get(data, 'json_log', False),
             # Framework type
             type=data.get('type'),  # None is valid
             # Global scripts
