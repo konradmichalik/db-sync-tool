@@ -193,7 +193,7 @@ The tool supports automatic configuration discovery for faster workflows. Instea
 
 Create a `.db-sync-tool/` directory in your project root with named configs:
 
-```
+```text
 myproject/
 ├── .db-sync-tool/
 │   ├── prod.yaml       # db_sync_tool prod
