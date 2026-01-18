@@ -15,6 +15,7 @@ import typer
 
 from db_sync_tool import sync
 from db_sync_tool.utility.console import init_output_manager
+from db_sync_tool.utility.logging_config import init_logging
 
 
 class OutputFormat(str, Enum):
@@ -73,6 +74,15 @@ def main(
             rich_help_panel="Configuration",
         ),
     ] = None,
+    json_log: Annotated[
+        bool,
+        typer.Option(
+            "--json-log",
+            "-jl",
+            help="Use JSON format for log file output (structured logging)",
+            rich_help_panel="Configuration",
+        ),
+    ] = False,
     # === Output Options ===
     verbose: Annotated[
         int,
@@ -519,6 +529,7 @@ def main(
         config_file=config_file,
         host_file=host_file,
         log_file=log_file,
+        json_log=json_log,
         verbose=verbose,
         mute=mute,
         quiet=quiet,
@@ -571,6 +582,14 @@ def main(
     # Initialize output manager
     output_format = "quiet" if quiet else output.value
     init_output_manager(format=output_format, verbose=verbose, mute=mute or quiet)
+
+    # Initialize structured logging
+    init_logging(
+        verbose=verbose,
+        mute=mute or quiet,
+        log_file=log_file,
+        json_logging=json_log,
+    )
 
     # Call sync with typed args
     sync.Sync(
