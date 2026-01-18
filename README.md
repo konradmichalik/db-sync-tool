@@ -31,7 +31,7 @@ Python script to synchronize a database from an origin to a target system with a
 
 ### Prerequisite
 
-The script needs [python](https://python.org/) __3.5__ or higher. It is necessary for some additional functionalities to have [pip](https://pypi.org/project/pip/) installed on your local machine. 
+The script needs [python](https://python.org/) __3.10__ or higher. It is necessary for some additional functionalities to have [pip](https://pypi.org/project/pip/) installed on your local machine. 
 
 <a name="install-pip"></a>
 ### pip
@@ -194,7 +194,65 @@ optional arguments:
                         Additional mysqldump options for creating the database dump, e.g. --additional-mysqldump-options="--where="deleted=0"
 ```
 
-If you haven't declared a path to a SSH key, during the script execution you are requested to enter the SSH password for the given user in the shell argument or the `config.json` to enable a SSH connection for the remote system. 
+If you haven't declared a path to a SSH key, during the script execution you are requested to enter the SSH password for the given user in the shell argument or the `config.json` to enable a SSH connection for the remote system.
+
+<a name="modern-cli"></a>
+#### Modern CLI (typer)
+
+An alternative CLI based on [typer](https://typer.tiangolo.com/) is available with improved help output and shell completion support. The typer CLI organizes arguments into logical groups for better readability.
+
+**Enable typer CLI:**
+```bash
+# Set environment variable
+export DB_SYNC_TOOL_USE_TYPER=1
+
+# Or use inline
+DB_SYNC_TOOL_USE_TYPER=1 db_sync_tool --help
+```
+
+**Features:**
+- Grouped help output (Configuration, Output, Execution, Database Dump, etc.)
+- Automatic shell completion (`db_sync_tool --install-completion`)
+- Same arguments and behavior as the standard CLI
+
+**Example help output:**
+```
+ Usage: db_sync_tool [OPTIONS] [ORIGIN] [TARGET]
+
+ Synchronize a database from origin to target system.
+
+╭─ Configuration ──────────────────────────────────────────────────────────────╮
+│ --config-file  -f      TEXT  Path to configuration file                      │
+│ --host-file    -o      TEXT  Using an additional hosts file                  │
+│ --log-file     -l      TEXT  File path for creating an additional log file   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Output ─────────────────────────────────────────────────────────────────────╮
+│ --verbose  -v      INTEGER  Enable verbose output (-v) or debug (-vv)        │
+│ --mute     -m               Mute console output                              │
+│ --quiet    -q               Suppress all output except errors                │
+│ --output           [interactive|ci|json|quiet]  Output format                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Origin Client ──────────────────────────────────────────────────────────────╮
+│ --origin-host  -oh   TEXT  SSH host to origin system                         │
+│ --origin-user  -ou   TEXT  SSH user for origin system                        │
+│ ...                                                                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+**Shell completion:**
+```bash
+# Install completion for your shell (bash, zsh, fish, powershell)
+DB_SYNC_TOOL_USE_TYPER=1 db_sync_tool --install-completion
+
+# Restart your shell, then use tab completion
+db_sync_tool --config<TAB>  # completes to --config-file
+```
+
+**Make typer the default (optional):**
+```bash
+# Add to your ~/.bashrc or ~/.zshrc
+export DB_SYNC_TOOL_USE_TYPER=1
+``` 
 
 ### Import
 
