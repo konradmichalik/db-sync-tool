@@ -24,7 +24,8 @@ RUN pip3 install --no-cache-dir \
     jsonschema>=4.20 \
     requests>=2.31.0 \
     semantic_version>=2.10.0 \
-    rich>=13.0
+    rich>=13.0 \
+    typer>=0.15.0
 
 #
 # MariaDB client configuration (disable SSL for testing)
