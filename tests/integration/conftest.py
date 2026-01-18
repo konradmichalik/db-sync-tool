@@ -11,6 +11,7 @@ TESTS_DIR = Path(__file__).parent
 sys.path.insert(0, str(TESTS_DIR))
 DOCKER_COMPOSE = ["docker", "compose", "-f", str(TESTS_DIR / "docker" / "docker-compose.yml")]
 CONFIGS = "/var/www/html/tests/integration/configs"
+FIXTURES = "/var/www/html/tests/integration/fixtures"
 
 
 def exec_in_container(container: str, cmd: list[str]) -> subprocess.CompletedProcess:
@@ -34,6 +35,22 @@ def get_row_count(db: str, table: str) -> int:
 def file_exists_local(path: str) -> bool:
     """Check if file exists locally."""
     return (TESTS_DIR / path).exists()
+
+
+def file_exists_in_container(container: str, path: str) -> bool:
+    """Check if file exists in Docker container."""
+    return exec_in_container(container, ["test", "-f", path]).returncode == 0
+
+
+def dir_exists_in_container(container: str, path: str) -> bool:
+    """Check if directory exists in Docker container."""
+    return exec_in_container(container, ["test", "-d", path]).returncode == 0
+
+
+def file_content_in_container(container: str, path: str) -> str:
+    """Read file content from Docker container."""
+    result = exec_in_container(container, ["cat", path])
+    return result.stdout if result.returncode == 0 else ""
 
 
 @pytest.fixture(scope="session")
@@ -70,6 +87,7 @@ def reset_test_state(docker_up):
                 "/var/www/html/tests/integration/fixtures/www1/after_script*.txt "
                 "/var/www/html/tests/integration/fixtures/www2/before_script*.txt "
                 "/var/www/html/tests/integration/fixtures/www2/after_script*.txt "
+                "/var/www/html/tests/integration/fixtures/www2/fileadmin/*.txt "
                 "/var/www/html/tests/integration/fixtures/test.log 2>/dev/null || true"
             ])
 
