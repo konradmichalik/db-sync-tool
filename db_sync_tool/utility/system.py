@@ -91,7 +91,7 @@ def _set_config_value(key: str, value, client: str | None = None) -> None:
     :param client: Optional client identifier for nested config
     """
     if client:
-        config[client][key] = value
+        config.setdefault(client, {})[key] = value
     else:
         config[key] = value
     refresh_typed_config()
