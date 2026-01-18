@@ -281,8 +281,8 @@ class SyncConfig:
         Direct: files_options: '--verbose'
         Legacy: files: { option: ['--verbose', '--compress'] }
         """
-        # Direct files_options takes precedence
-        if files_options_direct:
+        # Direct files_options takes precedence (explicit "" overrides legacy)
+        if files_options_direct is not None:
             return files_options_direct
         # Check legacy format
         if isinstance(files_data, dict) and 'option' in files_data:
