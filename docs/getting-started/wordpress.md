@@ -21,7 +21,7 @@ db_sync_tool \
     --target-path <TARGET_PATH>
 ```
 
-## Configuration File
+## Example Configuration
 
 ```yaml
 # config.yaml
