@@ -238,7 +238,7 @@ class RichHandler(logging.Handler):
             self.handleError(record)
 
 
-class SyncLoggerAdapter(logging.LoggerAdapter[logging.Logger]):
+class SyncLoggerAdapter(logging.LoggerAdapter):  # type: ignore[type-arg]
     """
     Logger adapter that automatically adds subject context.
 
