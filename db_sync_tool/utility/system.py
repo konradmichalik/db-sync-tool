@@ -40,6 +40,8 @@ config: dict[str, Any] = {
     'use_rsync': True,  # rsync is 5-10x faster than Paramiko SFTP
     'use_rsync_options': None,
     'use_sshpass': False,
+    'with_files': False,  # Enable file synchronization (opt-in)
+    'files_only': False,  # Sync only files, skip database
     'ssh_agent': False,
     'ssh_password': {
         mode.Client.ORIGIN: None,
@@ -427,7 +429,9 @@ def check_args_options(config_file=None,
                        force_password=False,
                        use_rsync=False,
                        use_rsync_options=None,
-                       reverse=False):
+                       reverse=False,
+                       with_files=False,
+                       files_only=False):
     """
     Checking arguments and fill options array
     :param config_file:
@@ -444,6 +448,8 @@ def check_args_options(config_file=None,
     :param use_rsync:
     :param use_rsync_options:
     :param reverse:
+    :param with_files:
+    :param files_only:
     :return:
     """
     global config
@@ -508,6 +514,15 @@ def check_args_options(config_file=None,
             '"Keep dump" option chosen',
             True
         )
+
+    if with_files is not None:
+        config['with_files'] = with_files
+
+    if files_only is not None:
+        config['files_only'] = files_only
+        if files_only:
+            # files_only implies with_files
+            config['with_files'] = True
 
 
 def reverse_hosts():
