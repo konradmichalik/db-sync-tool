@@ -9,6 +9,9 @@ Tests CLI argument parsing, help output, and argument namespace building.
 import argparse
 
 import pytest
+
+# Skip all tests in this module if typer is not installed
+typer = pytest.importorskip("typer", reason="typer not installed")
 from typer.testing import CliRunner
 
 from db_sync_tool.cli import OutputFormat, _build_args_namespace, app
