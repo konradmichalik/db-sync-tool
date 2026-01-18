@@ -12,8 +12,10 @@ from enum import Enum
 from typing import Annotated
 
 import typer
+from rich.console import Console
 
 from db_sync_tool import sync
+from db_sync_tool.utility.config_resolver import ConfigResolver
 from db_sync_tool.utility.console import init_output_manager
 from db_sync_tool.utility.logging_config import init_logging
 
@@ -541,10 +543,50 @@ def main(
         db_sync_tool production local -o hosts.yaml
         db_sync_tool -f config.yaml -v -y
     """
+    # Initialize output manager first (needed for config resolver output)
+    output_format = "quiet" if quiet else output.value
+    init_output_manager(format=output_format, verbose=verbose, mute=mute or quiet)
+
+    # Config resolution: use ConfigResolver if no explicit config file
+    resolved_config = None
+    resolved_origin = origin
+    resolved_target = target
+
+    if config_file is None and import_file is None:
+        # Use ConfigResolver for auto-discovery
+        console = Console()
+        resolver = ConfigResolver(console=console)
+
+        # Check if we should use auto-discovery
+        # Allow interactive mode only if running in a TTY and not in quiet/mute mode
+        interactive = console.is_terminal and not (quiet or mute)
+
+        try:
+            resolved = resolver.resolve(
+                config_file=None,
+                origin=origin,
+                target=target,
+                interactive=interactive,
+            )
+
+            if resolved.config_file:
+                config_file = str(resolved.config_file)
+
+            # Store resolved configs for later merging
+            if resolved.origin_config or resolved.target_config:
+                resolved_config = resolved
+                # Clear origin/target args since we're using resolved configs
+                resolved_origin = None
+                resolved_target = None
+
+        except Exception:
+            # ConfigResolver couldn't find config, fall through to original behavior
+            pass
+
     # Build args namespace for compatibility with existing code
     args = _build_args_namespace(
-        origin=origin,
-        target=target,
+        origin=resolved_origin,
+        target=resolved_target,
         config_file=config_file,
         host_file=host_file,
         log_file=log_file,
@@ -598,11 +640,8 @@ def main(
         origin_db_user=origin_db_user,
         origin_db_password=origin_db_password,
         origin_db_port=origin_db_port,
+        resolved_config=resolved_config,
     )
-
-    # Initialize output manager
-    output_format = "quiet" if quiet else output.value
-    init_output_manager(format=output_format, verbose=verbose, mute=mute or quiet)
 
     # Store json_log in system.config for use by log.py and other modules
     # Import here to avoid circular imports at module level
