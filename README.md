@@ -185,6 +185,64 @@ target:
 
 It is possible to adjust the `config.yml` [configuration](docs/CONFIG.md).
 
+### Auto-Discovery Configuration
+
+The tool supports automatic configuration discovery for faster workflows. Instead of always specifying `-f config.yaml`, you can use:
+
+#### Project Configs (`.db-sync-tool/`)
+
+Create a `.db-sync-tool/` directory in your project root with named configs:
+
+```text
+myproject/
+├── .db-sync-tool/
+│   ├── prod.yaml       # db_sync_tool prod
+│   ├── staging.yaml    # db_sync_tool staging
+│   └── defaults.yaml   # Project-specific defaults
+└── ...
+```
+
+Example `.db-sync-tool/prod.yaml`:
+```yaml
+origin: production      # Reference to global host
+target: local
+ignore_table:
+  - tx_solr_*
+```
+
+Usage:
+```bash
+db_sync_tool prod       # Loads .db-sync-tool/prod.yaml
+db_sync_tool            # Interactive selection if multiple configs exist
+```
+
+#### Global Hosts (`~/.db-sync-tool/`)
+
+Define reusable host configurations in `~/.db-sync-tool/hosts.yaml`:
+
+```yaml
+production:
+  host: prod.example.com
+  user: deploy
+  path: /var/www/html/LocalConfiguration.php
+  protect: true         # Prevents accidental overwrites
+
+staging:
+  host: staging.example.com
+  user: deploy
+  path: /var/www/html/LocalConfiguration.php
+
+local:
+  path: /var/www/local/LocalConfiguration.php
+```
+
+Usage:
+```bash
+db_sync_tool production local   # Uses hosts from ~/.db-sync-tool/hosts.yaml
+```
+
+See [Configuration](docs/CONFIG.md#auto-discovery) for more details.
+
 ## File sync
 
 There is an addon script available to sync files to. Use the [file-sync-tool](https://github.com/jackd248/file-sync-tool) to easily transfer files between origin and target system. 

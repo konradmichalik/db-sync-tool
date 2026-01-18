@@ -8,13 +8,18 @@ automatic documentation, and rich help formatting.
 """
 
 import argparse
+import logging
+import traceback
 from enum import Enum
 from typing import Annotated
 
 import typer
+from rich.console import Console
 
 from db_sync_tool import sync
+from db_sync_tool.utility.config_resolver import ConfigResolver
 from db_sync_tool.utility.console import init_output_manager
+from db_sync_tool.utility.exceptions import ConfigError, NoConfigFoundError
 from db_sync_tool.utility.logging_config import init_logging
 
 
@@ -541,10 +546,66 @@ def main(
         db_sync_tool production local -o hosts.yaml
         db_sync_tool -f config.yaml -v -y
     """
+    # Initialize output manager first (needed for config resolver output)
+    output_format = "quiet" if quiet else output.value
+    init_output_manager(format=output_format, verbose=verbose, mute=mute or quiet)
+
+    # Config resolution: use ConfigResolver if no explicit config file or host file
+    resolved_config = None
+    resolved_origin = origin
+    resolved_target = target
+
+    if config_file is None and import_file is None and host_file is None:
+        # Use ConfigResolver for auto-discovery
+        # Skip if host_file is provided (use original host linking mechanism)
+        console = Console()
+        resolver = ConfigResolver(console=console)
+
+        # Check if we should use auto-discovery
+        # Allow interactive mode only if running in a TTY and not in quiet/mute mode
+        interactive = console.is_terminal and not (quiet or mute)
+
+        try:
+            resolved = resolver.resolve(
+                config_file=None,
+                origin=origin,
+                target=target,
+                interactive=interactive,
+            )
+
+            if resolved.config_file:
+                config_file = str(resolved.config_file)
+
+            # Store resolved configs for later merging
+            if resolved.origin_config or resolved.target_config:
+                resolved_config = resolved
+                # Clear origin/target args since we're using resolved configs
+                resolved_origin = None
+                resolved_target = None
+
+        except NoConfigFoundError:
+            # No auto-discovery config found, fall through to original behavior
+            # This is expected when no .db-sync-tool/ or ~/.db-sync-tool/ exists
+            pass
+        except ConfigError:
+            # Config was found but has errors (invalid YAML, missing host, etc.)
+            # Re-raise to let the user know about the problem
+            raise
+        except Exception as e:
+            # Unexpected error during config resolution
+            # Log with details in verbose mode, then re-raise
+            logger = logging.getLogger('db_sync_tool')
+            error_msg = f"Unexpected error during config resolution: {e}"
+            if verbose >= 2:
+                logger.error(f"{error_msg}\n{traceback.format_exc()}")
+            elif verbose >= 1:
+                logger.error(error_msg)
+            raise
+
     # Build args namespace for compatibility with existing code
     args = _build_args_namespace(
-        origin=origin,
-        target=target,
+        origin=resolved_origin,
+        target=resolved_target,
         config_file=config_file,
         host_file=host_file,
         log_file=log_file,
@@ -598,11 +659,8 @@ def main(
         origin_db_user=origin_db_user,
         origin_db_password=origin_db_password,
         origin_db_port=origin_db_port,
+        resolved_config=resolved_config,
     )
-
-    # Initialize output manager
-    output_format = "quiet" if quiet else output.value
-    init_output_manager(format=output_format, verbose=verbose, mute=mute or quiet)
 
     # Store json_log in system.config for use by log.py and other modules
     # Import here to avoid circular imports at module level
