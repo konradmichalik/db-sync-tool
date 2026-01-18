@@ -769,3 +769,208 @@ staging:
         names = resolver.get_global_host_names()
         assert "production" in names
         assert "staging" in names
+
+
+class TestInvalidConfigs:
+    """Tests for handling invalid configuration files."""
+
+    @pytest.mark.unit
+    def test_invalid_yaml_logs_warning(self, tmp_path, monkeypatch, caplog):
+        """Invalid YAML files should log a warning and be skipped."""
+        import logging
+
+        project_dir = tmp_path / PROJECT_CONFIG_DIR
+        project_dir.mkdir()
+
+        # Create an invalid YAML file
+        invalid_config = project_dir / "invalid.yaml"
+        invalid_config.write_text("origin: [\ninvalid yaml content")
+
+        # Create a valid config to ensure it's still loaded
+        valid_config = project_dir / "valid.yaml"
+        valid_config.write_text("origin: production\ntarget: local\n")
+
+        monkeypatch.chdir(tmp_path)
+
+        with caplog.at_level(logging.WARNING):
+            resolver = ConfigResolver()
+            resolver.load_project_config()
+
+        # Valid config should be loaded
+        assert "valid" in resolver._project_configs
+
+        # Invalid config should be skipped
+        assert "invalid" not in resolver._project_configs
+
+        # Warning should be logged
+        assert any("invalid.yaml" in record.message for record in caplog.records)
+
+    @pytest.mark.unit
+    def test_empty_yaml_file_loaded_as_empty_config(self, tmp_path, monkeypatch):
+        """Empty YAML files are valid and loaded with empty config."""
+        project_dir = tmp_path / PROJECT_CONFIG_DIR
+        project_dir.mkdir()
+
+        # Create an empty file (valid YAML, just no content)
+        empty_config = project_dir / "empty.yaml"
+        empty_config.write_text("")
+
+        monkeypatch.chdir(tmp_path)
+
+        resolver = ConfigResolver()
+        resolver.load_project_config()
+
+        # Empty config is technically valid YAML (returns None/empty dict)
+        # and should be loaded as a ProjectConfig with empty values
+        assert "empty" in resolver._project_configs
+        assert resolver._project_configs["empty"].origin is None
+        assert resolver._project_configs["empty"].target is None
+
+    @pytest.mark.unit
+    def test_yml_extension_also_warns_on_invalid(self, tmp_path, monkeypatch, caplog):
+        """Invalid .yml files should also log warnings."""
+        import logging
+
+        project_dir = tmp_path / PROJECT_CONFIG_DIR
+        project_dir.mkdir()
+
+        # Create an invalid .yml file
+        invalid_yml = project_dir / "broken.yml"
+        invalid_yml.write_text("origin: {invalid")
+
+        monkeypatch.chdir(tmp_path)
+
+        with caplog.at_level(logging.WARNING):
+            resolver = ConfigResolver()
+            resolver.load_project_config()
+
+        assert "broken" not in resolver._project_configs
+        assert any("broken.yml" in record.message for record in caplog.records)
+
+
+class TestUserAbort:
+    """Tests for user abort scenarios."""
+
+    @pytest.mark.unit
+    def test_aborted_by_user_raises_config_error(self, tmp_path, monkeypatch):
+        """User cancelling interactive selection raises ConfigError."""
+        from unittest.mock import patch
+
+        project_dir = tmp_path / PROJECT_CONFIG_DIR
+        project_dir.mkdir()
+        (project_dir / "prod.yaml").write_text("origin: production\ntarget: local\n")
+
+        global_dir = tmp_path / "home" / GLOBAL_CONFIG_DIR
+        global_dir.mkdir(parents=True)
+        (global_dir / HOSTS_FILE).write_text(
+            "production:\n  host: prod.example.com\nlocal:\n  path: /local\n"
+        )
+
+        monkeypatch.chdir(tmp_path)
+
+        resolver = ConfigResolver()
+        resolver._global_dir = global_dir
+
+        # Mock IntPrompt to return 1 and Confirm to return False (user abort)
+        with patch('db_sync_tool.utility.config_resolver.IntPrompt.ask', return_value=1):
+            with patch('db_sync_tool.utility.config_resolver.Confirm.ask', return_value=False):
+                with pytest.raises(ConfigError) as exc:
+                    resolver.resolve(interactive=True)
+
+                assert "Aborted" in str(exc.value)
+
+
+class TestExceptionTypes:
+    """Tests for correct exception types."""
+
+    @pytest.mark.unit
+    def test_no_config_raises_no_config_found_error(self, tmp_path, monkeypatch):
+        """Missing config in non-interactive mode raises NoConfigFoundError."""
+        monkeypatch.chdir(tmp_path)
+        resolver = ConfigResolver()
+        resolver._global_dir = tmp_path / "empty"
+
+        with pytest.raises(NoConfigFoundError):
+            resolver.resolve(interactive=False)
+
+    @pytest.mark.unit
+    def test_missing_host_raises_config_error(self, tmp_path):
+        """Missing host reference raises ConfigError (not NoConfigFoundError)."""
+        global_dir = tmp_path / GLOBAL_CONFIG_DIR
+        global_dir.mkdir()
+        (global_dir / HOSTS_FILE).write_text("production:\n  host: prod.example.com\n")
+
+        resolver = ConfigResolver()
+        resolver._global_dir = global_dir
+
+        with pytest.raises(ConfigError) as exc:
+            resolver.resolve(origin="production", target="nonexistent", interactive=False)
+
+        # Should be ConfigError, not NoConfigFoundError
+        assert not isinstance(exc.value, NoConfigFoundError)
+        assert "nonexistent" in str(exc.value)
+
+    @pytest.mark.unit
+    def test_missing_explicit_file_raises_config_error(self, tmp_path):
+        """Missing explicit config file raises ConfigError."""
+        resolver = ConfigResolver()
+
+        with pytest.raises(ConfigError) as exc:
+            resolver.resolve(config_file=str(tmp_path / "nonexistent.yaml"), interactive=False)
+
+        assert not isinstance(exc.value, NoConfigFoundError)
+        assert "not found" in str(exc.value)
+
+
+class TestEndpointResolution:
+    """Tests for endpoint (origin/target) resolution."""
+
+    @pytest.mark.unit
+    def test_resolve_endpoint_string_host_ref(self, tmp_path):
+        """String endpoint should resolve to host definition."""
+        global_dir = tmp_path / GLOBAL_CONFIG_DIR
+        global_dir.mkdir()
+        (global_dir / HOSTS_FILE).write_text(
+            "production:\n  host: prod.example.com\n  user: deploy\n"
+        )
+
+        resolver = ConfigResolver()
+        resolver._global_dir = global_dir
+        resolver.load_global_config()
+
+        result = resolver._resolve_endpoint("production")
+        assert result["host"] == "prod.example.com"
+        assert result["user"] == "deploy"
+
+    @pytest.mark.unit
+    def test_resolve_endpoint_dict_passthrough(self, tmp_path):
+        """Dict endpoint should pass through unchanged."""
+        resolver = ConfigResolver()
+
+        endpoint = {"host": "custom.example.com", "user": "admin"}
+        result = resolver._resolve_endpoint(endpoint)
+
+        assert result == endpoint
+
+    @pytest.mark.unit
+    def test_resolve_endpoint_none_returns_empty(self):
+        """None endpoint should return empty dict."""
+        resolver = ConfigResolver()
+        result = resolver._resolve_endpoint(None)
+        assert result == {}
+
+    @pytest.mark.unit
+    def test_resolve_endpoint_unknown_host_raises(self, tmp_path):
+        """Unknown host reference should raise ConfigError."""
+        global_dir = tmp_path / GLOBAL_CONFIG_DIR
+        global_dir.mkdir()
+        (global_dir / HOSTS_FILE).write_text("production:\n  host: prod.example.com\n")
+
+        resolver = ConfigResolver()
+        resolver._global_dir = global_dir
+        resolver.load_global_config()
+
+        with pytest.raises(ConfigError) as exc:
+            resolver._resolve_endpoint("unknown_host")
+
+        assert "unknown_host" in str(exc.value)
