@@ -23,7 +23,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, IntPrompt
 
-from db_sync_tool.utility.exceptions import ConfigError
+from db_sync_tool.utility.exceptions import ConfigError, NoConfigFoundError
 
 
 # Directory names
@@ -293,7 +293,7 @@ class ConfigResolver:
         if interactive:
             return self._resolve_interactive()
 
-        raise ConfigError(
+        raise NoConfigFoundError(
             'Configuration is missing, use a separate file or provide host parameter'
         )
 
@@ -376,7 +376,7 @@ class ConfigResolver:
         if self._global_hosts:
             return self._interactive_host_selection()
 
-        raise ConfigError(
+        raise NoConfigFoundError(
             "No configuration found. Create .db-sync-tool/ or ~/.db-sync-tool/ "
             "with config files, or use -f to specify a config file."
         )
