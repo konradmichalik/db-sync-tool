@@ -152,8 +152,6 @@ target:
 
 Import an existing dump file to a local database.
 
-![Sync mode import local](/images/sm-dump-local.png)
-
 ### Configuration
 
 Use the `-i` / `--import-file` option:
@@ -174,8 +172,6 @@ db_sync_tool -f config.yaml -i /path/to/dump.sql
 ## Import Remote {#import-remote}
 
 Import an existing dump file to a remote database.
-
-![Sync mode import remote](/images/sm-dump-remote.png)
 
 ### Configuration
 
