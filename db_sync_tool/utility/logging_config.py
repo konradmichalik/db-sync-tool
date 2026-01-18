@@ -268,12 +268,6 @@ class SyncLoggerAdapter(logging.LoggerAdapter):  # type: ignore[type-arg]
             kwargs["extra"] = extra
         return msg, kwargs
 
-    def set_remote(self, remote: bool) -> None:
-        """Update the remote flag for subsequent log messages."""
-        self.default_remote = remote
-        self.extra["remote"] = remote
-
-
 # Global logger instances
 _root_logger: logging.Logger | None = None
 _logging_config: LoggingConfig = LoggingConfig()

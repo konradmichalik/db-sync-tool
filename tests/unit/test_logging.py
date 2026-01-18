@@ -325,19 +325,6 @@ class TestSyncLoggerAdapter:
         assert kwargs["extra"]["subject"] == "ORIGIN"
         assert kwargs["extra"]["custom"] == "value"
 
-    def test_set_remote(self):
-        """Test setting remote flag."""
-        logger = logging.getLogger("test_remote")
-        adapter = SyncLoggerAdapter(logger, subject="ORIGIN", remote=False)
-
-        assert adapter.default_remote is False
-
-        adapter.set_remote(True)
-
-        assert adapter.default_remote is True
-        assert adapter.extra["remote"] is True
-
-
 class TestInitLogging:
     """Tests for init_logging function."""
 
