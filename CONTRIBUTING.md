@@ -1,155 +1,88 @@
-# Contributing to db-sync-tool
+# Contributing
 
-Thank you for your interest in contributing to db-sync-tool! This document outlines the process for contributing to this project.
+Thank you for your interest in contributing to db-sync-tool!
 
-## Requirements
-
-- Python 3.10+
-- Docker & Docker Compose (for integration tests)
-- pipx (recommended for running tools without global installation)
-
-## Initial Setup
+## 🛠️ Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/jackd248/db-sync-tool.git
+git clone https://github.com/konradmichalik/db-sync-tool.git
 cd db-sync-tool
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Install package in development mode
 pip install -e .
 ```
 
-## Code Quality
+**Requirements:** Python 3.10+, Docker (for integration tests), Node.js (for docs)
 
-### Linting
-
-We use [ruff](https://docs.astral.sh/ruff/) for linting and code formatting.
+## ✅ Code Quality
 
 ```bash
-# Check for issues
+# Linting
 pipx run ruff check db_sync_tool/
-
-# Auto-fix issues
 pipx run ruff check db_sync_tool/ --fix
 
-# Format code
-pipx run ruff format db_sync_tool/
-```
-
-### Static Analysis
-
-```bash
 # Type checking
 pipx run mypy db_sync_tool/
 ```
 
-Type checking runs automatically in CI on every pull request.
-
-## Testing
-
-### Unit Tests
-
-Unit tests run without Docker and are fast (~0.1s).
+## 🧪 Testing
 
 ```bash
-# Run unit tests
+# Unit tests (fast, no Docker)
 ./tests/run-unit-tests.sh
 
-# Run with coverage report
-./tests/run-unit-tests.sh --cov
-
-# Run specific test file
-./tests/run-unit-tests.sh -k "security"
-```
-
-### Integration Tests
-
-Integration tests require Docker and test the full sync workflow.
-
-```bash
-# Run integration tests (starts Docker automatically)
+# Integration tests (requires Docker)
 ./tests/run-integration-tests.sh
 
-# Run specific test
-./tests/run-integration-tests.sh -k "receiver"
-
-# Verbose output
-./tests/run-integration-tests.sh -v
+# With coverage
+./tests/run-unit-tests.sh --cov
 ```
 
-### Test Structure
+## 📕 Documentation
 
+Documentation is built with [VitePress](https://vitepress.dev/) and deployed to GitHub Pages.
+
+```bash
+# Install dependencies
+npm install
+
+# Start local dev server
+npm run docs:dev
+
+# Build for production
+npm run docs:build
 ```
-tests/
-├── unit/                    # Fast, no Docker required
-│   ├── test_security.py     # Security functions (46 tests)
-│   ├── test_pure.py         # Utility functions (38 tests)
-│   └── test_config.py       # Configuration (33 tests)
-│
-└── integration/             # Full E2E tests, Docker required
-    ├── test_sync_modes.py   # RECEIVER, SENDER, PROXY, etc.
-    ├── test_frameworks.py   # TYPO3, Symfony, WordPress, etc.
-    └── ...                  # 38 tests total
-```
 
-## Pull Request Process
+Edit files in `docs/`:
+- `getting-started/` - Installation, quickstart, framework guides
+- `configuration/` - Config options, auto-discovery, authentication
+- `reference/` - Sync modes, CLI reference
+- `development/` - Testing, release guide
 
-1. **Create a branch** from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+## 🔀 Pull Request Process
 
-2. **Make your changes** following the existing code style
+1. Create a branch from `main`
+2. Make changes following existing code style
+3. Run linting and tests
+4. Commit with [Conventional Commits](https://www.conventionalcommits.org/):
+   - `feat:` New feature
+   - `fix:` Bug fix
+   - `docs:` Documentation
+   - `test:` Tests
+   - `refactor:` Refactoring
+5. Push and open a PR
 
-3. **Run quality checks** before committing:
-   ```bash
-   # Linting
-   pipx run ruff check db_sync_tool/
+## 🤖 CI/CD
 
-   # Unit tests
-   ./tests/run-unit-tests.sh
+All PRs are checked by GitHub Actions:
+- Unit tests (Python 3.10-3.13)
+- Integration tests (Docker)
+- Linting (ruff)
+- Type checking (mypy)
+- Docs build (VitePress)
 
-   # Integration tests (if applicable)
-   ./tests/run-integration-tests.sh
-   ```
+## ❓ Questions?
 
-4. **Commit your changes** with clear, descriptive messages:
-   ```bash
-   git commit -m "feat: add new feature X"
-   ```
-
-   Follow [Conventional Commits](https://www.conventionalcommits.org/):
-   - `feat:` - New feature
-   - `fix:` - Bug fix
-   - `refactor:` - Code refactoring
-   - `docs:` - Documentation
-   - `test:` - Tests
-   - `build:` - Build/dependencies
-
-5. **Push and create a Pull Request**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-   Then open a PR on GitHub with:
-   - Clear description of changes
-   - Reference to related issue (if applicable)
-   - Any breaking changes noted
-
-## CI/CD
-
-All pull requests are automatically checked by GitHub Actions:
-
-- **Unit Tests**: Python 3.10, 3.11, 3.12, 3.13 with coverage
-- **Integration Tests**: Full E2E tests with Docker
-- **Linting**: ruff check and format
-- **Type Checking**: mypy static analysis
-
-Please ensure all checks pass before requesting a review.
-
-## Questions?
-
-If you have questions or need help, feel free to open an issue on GitHub.
+Open an [issue](https://github.com/konradmichalik/db-sync-tool/issues) on GitHub.

@@ -78,6 +78,12 @@ instance/
 # Sphinx docs
 docs/_build/
 
+# VitePress
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+node_modules/
+package-lock.json
+
 # PyBuilder
 .pybuilder/
 target/
