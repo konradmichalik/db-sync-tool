@@ -44,9 +44,12 @@ def create_mysql_config_file(client: str) -> str:
     db_config = client_cfg.db
 
     # Build config file content
+    # Passwords must be quoted to handle special chars like # ; $ etc.
+    # Inside double quotes, escape \ and "
+    escaped_password = db_config.password.replace('\\', '\\\\').replace('"', '\\"')
     config_content = "[client]\n"
     config_content += f"user={db_config.user}\n"
-    config_content += f"password={db_config.password}\n"
+    config_content += f'password="{escaped_password}"\n'
     if db_config.host:
         config_content += f"host={db_config.host}\n"
     if db_config.port:
