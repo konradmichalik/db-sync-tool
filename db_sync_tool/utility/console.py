@@ -415,12 +415,11 @@ class OutputManager:
         self._route_output("success", display_msg, stats, ci, interactive)
 
     def _print_table_row(self, subject: str, remote: bool, message: str) -> None:
-        """Print a table-style row with badge, location, and message."""
+        """Print a table-style row with badge, optional location, and message."""
         if not self._console or not self._text_class:
             return
 
         subj = subject.upper()
-        location = "remote" if remote else "local"
 
         # Determine badge color
         if subj == "ORIGIN":
@@ -432,8 +431,15 @@ class OutputManager:
 
         line = self._text_class()
         line.append_text(badge)
-        line.append(f"  ", style="dim")
-        line.append(f"{location:<8}", style="dim")
+
+        # Only show location column for ORIGIN/TARGET
+        if subj in ("ORIGIN", "TARGET"):
+            location = "remote" if remote else "local"
+            line.append(f"  ", style="dim")
+            line.append(f"{location:<8}", style="dim")
+        else:
+            line.append("  ")
+
         line.append(message)
         self._console.print(line, highlight=False)
 
