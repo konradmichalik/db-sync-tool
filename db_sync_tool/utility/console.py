@@ -55,6 +55,31 @@ _CI_ENV_MAP = {
 }
 
 
+# Badge color palette - consistent styling for all badges
+# Format: (background_color, text_color)
+# Colors match the original Rich theme for consistency
+BADGE_COLORS = {
+    "origin": ("magenta", "white"),   # Magenta (same as original)
+    "target": ("blue", "white"),      # Blue (same as original)
+    "local": ("cyan", "black"),       # Cyan (same as original)
+    "remote": ("bright_black", "white"),  # Gray
+    "info": ("cyan", "black"),        # Cyan (same as original)
+    "success": ("green", "white"),    # Green (same as original)
+    "warning": ("yellow", "black"),   # Yellow (same as original)
+    "error": ("red", "white"),        # Red (same as original)
+    "debug": ("bright_black", "white"),  # Dim gray (same as original)
+}
+
+# Consistent icons
+ICONS = {
+    "success": "✓",
+    "error": "✗",
+    "warning": "⚠",
+    "info": "ℹ",
+    "progress": "⋯",
+}
+
+
 @dataclass
 class StepInfo:
     """Information about a sync step."""
@@ -126,6 +151,9 @@ class OutputManager:
         self._escape: Callable[[str], str] | None = None
         self._gitlab_section_id: str | None = None
         self._sync_stats: dict[str, Any] = {}  # Track tables, size, durations
+        self._text_class: Any = None
+        self._style_class: Any = None
+        self._panel_class: Any = None
 
         if self.format == OutputFormat.INTERACTIVE:
             self._init_rich()
@@ -136,6 +164,9 @@ class OutputManager:
             from rich.console import Console
             from rich.markup import escape
             from rich.theme import Theme
+            from rich.text import Text
+            from rich.style import Style
+            from rich.panel import Panel
 
             theme = Theme({
                 "info": "cyan", "success": "green", "warning": "yellow",
@@ -144,8 +175,65 @@ class OutputManager:
             })
             self._console = Console(theme=theme, force_terminal=True)
             self._escape = escape
+            self._text_class = Text
+            self._style_class = Style
+            self._panel_class = Panel
         except ImportError:
             self.format = OutputFormat.CI
+
+    def _render_badge(self, label: str, badge_type: str | None = None) -> Any:
+        """
+        Render a styled badge with background color.
+
+        Args:
+            label: Badge text (e.g., "ORIGIN", "REMOTE")
+            badge_type: Badge type for color lookup, defaults to label.lower()
+
+        Returns:
+            Rich Text object with styled badge
+        """
+        if not self._text_class or not self._style_class:
+            # Fallback for when Rich is not available
+            return f"[{label}]"  # type: ignore[return-value]
+
+        badge_key = (badge_type or label).lower()
+        bg_color, fg_color = BADGE_COLORS.get(badge_key, ("#7f8c8d", "white"))
+
+        style = self._style_class(color=fg_color, bgcolor=bg_color, bold=True)
+        return self._text_class(f" {label} ", style=style)
+
+    def _render_badges(self, subject: str, remote: bool = False) -> Any:
+        """
+        Render subject + location badges.
+
+        Args:
+            subject: Subject type (ORIGIN, TARGET, INFO, etc.)
+            remote: Whether operation is on remote host
+
+        Returns:
+            Rich Text object with styled badges
+        """
+        if not self._text_class:
+            # Fallback
+            subj = subject.upper()
+            if subj in ("ORIGIN", "TARGET"):
+                return f"[{subj}][{'REMOTE' if remote else 'LOCAL'}]"  # type: ignore[return-value]
+            return f"[{subj}]"  # type: ignore[return-value]
+
+        result = self._text_class()
+        subj = subject.upper()
+
+        if subj in ("ORIGIN", "TARGET"):
+            result.append_text(self._render_badge(subj, subj.lower()))
+            result.append(" ")
+            location = "REMOTE" if remote else "LOCAL"
+            result.append_text(self._render_badge(location, location.lower()))
+        elif subj in ("WARNING", "ERROR", "INFO", "DEBUG"):
+            result.append_text(self._render_badge(subj, subj.lower()))
+        else:
+            result.append_text(self._render_badge(subj, "info"))
+
+        return result
 
     @staticmethod
     def _detect_ci_provider() -> CIProvider:
@@ -286,46 +374,25 @@ class OutputManager:
 
         def interactive() -> None:
             subject = step.subject if step else "INFO"
-            prefix = self._format_prefix(subject, step.remote if step else False)
-            style = self._get_style(subject)
+            remote = step.remote if step else False
             esc = self._escape or (lambda x: x)
 
             # Clear line
             print("\033[2K\r", end="")
 
-            if self.verbose >= 1:
-                # Verbose (-v/-vv): Plain text output without symbols
-                self._print_rich(f"[{style}]{esc(prefix)}[/{style}] {esc(display_msg)}", highlight=False)
-                if stats:
-                    stats_str = " • ".join(f"{k}: {v}" for k, v in stats.items())
-                    self._print_rich(f"  [dim]{stats_str}[/dim]", highlight=False)
-            elif is_final:
-                # Final message: Show summary-style output
-                duration = round(time.time() - self._start_time, 1)
-
-                # Build context info (origin → target)
-                context_parts = []
-                if self._sync_stats.get("origin_host"):
-                    context_parts.append(self._sync_stats["origin_host"])
-                if self._sync_stats.get("target_host"):
-                    context_parts.append(self._sync_stats["target_host"])
-                context = " → ".join(context_parts) if context_parts else ""
-
-                # Build stats
-                stats_parts = []
-                if self._sync_stats.get("tables"):
-                    stats_parts.append(f"{self._sync_stats['tables']} tables")
-                if self._sync_stats.get("size"):
-                    stats_parts.append(f"{round(self._sync_stats['size'] / 1024 / 1024, 1)} MB")
-                stats_parts.append(f"{duration}s")
-
-                # Build summary
-                if context:
-                    summary_str = f"{context} • " + " • ".join(stats_parts)
+            if is_final:
+                # Final message: Always show summary line
+                self._print_summary_line()
+            elif self.verbose >= 1:
+                # Verbose (-v/-vv): Table-based output with badge
+                if self._console and self._text_class:
+                    self._print_table_row(subject, remote, display_msg)
+                    if stats:
+                        stats_str = " • ".join(f"{k}: {v}" for k, v in stats.items())
+                        self._print_rich(f"           [dim]{stats_str}[/dim]", highlight=False)
                 else:
-                    summary_str = " • ".join(stats_parts)
-
-                self._print_rich(f"[success]✓ Sync complete:[/success] {summary_str}", highlight=False)
+                    prefix = self._format_prefix(subject, remote)
+                    self._print_rich(f"{prefix} {esc(display_msg)}", highlight=False)
             else:
                 # Compact: Single progress bar line (updates in place)
                 bar = self._render_progress_bar()
@@ -333,12 +400,80 @@ class OutputManager:
                 # Truncate message if too long
                 max_msg_len = 50
                 short_msg = display_msg[:max_msg_len] + "..." if len(display_msg) > max_msg_len else display_msg
-                self._print_rich(
-                    f"{bar} {step_info} • [{style}]{esc(prefix)}[/{style}] {esc(short_msg)}",
-                    end="\r", highlight=False
-                )
+
+                if self._console and self._text_class:
+                    badge = self._render_badge(subject.upper(), subject.lower())
+                    line = self._text_class()
+                    line.append(f"{bar} {step_info} ")
+                    line.append_text(badge)
+                    line.append(f"  {short_msg}")
+                    self._console.print(line, end="\r", highlight=False)
+                else:
+                    prefix = self._format_prefix(subject, remote)
+                    self._print_rich(f"{bar} {step_info} {prefix} {esc(short_msg)}", end="\r", highlight=False)
 
         self._route_output("success", display_msg, stats, ci, interactive)
+
+    def _print_table_row(self, subject: str, remote: bool, message: str) -> None:
+        """Print a table-style row with badge, optional location, and message."""
+        if not self._console or not self._text_class:
+            return
+
+        subj = subject.upper()
+
+        # Determine badge color
+        if subj == "ORIGIN":
+            badge = self._render_badge("ORIGIN", "origin")
+        elif subj == "TARGET":
+            badge = self._render_badge("TARGET", "target")
+        else:
+            badge = self._render_badge(subj, subj.lower())
+
+        line = self._text_class()
+        line.append_text(badge)
+
+        # Only show location column for ORIGIN/TARGET
+        if subj in ("ORIGIN", "TARGET"):
+            location = "remote" if remote else "local"
+            line.append(f"  ", style="dim")
+            line.append(f"{location:<8}", style="dim")
+        else:
+            line.append("  ")
+
+        line.append(message)
+        self._console.print(line, highlight=False)
+
+    def _print_summary_line(self) -> None:
+        """Print the final sync summary as a simple line."""
+        duration = round(time.time() - self._start_time, 1)
+
+        # Build context info (origin → target)
+        context_parts = []
+        if self._sync_stats.get("origin_host"):
+            context_parts.append(self._sync_stats["origin_host"])
+        if self._sync_stats.get("target_host"):
+            context_parts.append(self._sync_stats["target_host"])
+        context = " → ".join(context_parts) if context_parts else ""
+
+        # Build stats
+        stats_parts = []
+        if self._sync_stats.get("tables"):
+            stats_parts.append(f"{self._sync_stats['tables']} tables")
+        if self._sync_stats.get("size"):
+            stats_parts.append(f"{round(self._sync_stats['size'] / 1024 / 1024, 1)} MB")
+        stats_parts.append(f"{duration}s")
+        stats_str = " • ".join(stats_parts)
+
+        # Build summary line
+        if context:
+            summary = f"{context} • {stats_str}"
+        else:
+            summary = stats_str
+
+        # Escape summary to prevent Rich markup interpretation (e.g., IPv6 addresses with brackets)
+        esc = self._escape or (lambda x: x)
+        self._console.print()  # Empty line before summary
+        self._print_rich(f"[green]{ICONS['success']} Sync complete:[/green] {esc(summary)}", highlight=False)
 
     def error(self, message: str, exception: Exception | None = None) -> None:
         """Display an error message."""
@@ -352,9 +487,15 @@ class OutputManager:
 
         def interactive() -> None:
             esc = self._escape or (lambda x: x)
-            self._print_rich(f"[error]✗ [ERROR] {esc(message)}[/error]", highlight=False)
-            if exception and self.verbose >= 2:
-                self._print_rich(f"  [dim]{esc(str(exception))}[/dim]", highlight=False)
+            if self._console and self._text_class:
+                line = self._text_class()
+                line.append_text(self._render_badge("ERROR", "error"))
+                line.append(f"  {ICONS['error']} {message}")
+                self._console.print(line, highlight=False)
+                if exception and self.verbose >= 2:
+                    self._print_rich(f"  [dim]{esc(str(exception))}[/dim]", highlight=False)
+            else:
+                self._print_rich(f"[error]{ICONS['error']} [ERROR] {esc(message)}[/error]", highlight=False)
 
         exc_str = str(exception) if exception else None
         self._route_output("error", message, {"exception": exc_str}, ci, interactive, force=True)
@@ -374,7 +515,13 @@ class OutputManager:
 
         def interactive() -> None:
             esc = self._escape or (lambda x: x)
-            self._print_rich(f"[warning]⚠ [WARNING] {esc(message)}[/warning]", highlight=False)
+            if self._console and self._text_class:
+                line = self._text_class()
+                line.append_text(self._render_badge("WARNING", "warning"))
+                line.append(f"  {ICONS['warning']} {message}")
+                self._console.print(line, highlight=False)
+            else:
+                self._print_rich(f"[warning]{ICONS['warning']} [WARNING] {esc(message)}[/warning]", highlight=False)
 
         self._route_output("warning", message, None, ci, interactive)
 
@@ -388,7 +535,13 @@ class OutputManager:
 
         def interactive() -> None:
             esc = self._escape or (lambda x: x)
-            self._print_rich(f"[info]ℹ {esc(message)}[/info]", highlight=False)
+            if self._console and self._text_class:
+                line = self._text_class()
+                line.append_text(self._render_badge("INFO", "info"))
+                line.append(f"  {ICONS['info']} {message}")
+                self._console.print(line, highlight=False)
+            else:
+                self._print_rich(f"[info]{ICONS['info']} {esc(message)}[/info]", highlight=False)
 
         self._route_output("info", message, None, ci, interactive)
 
@@ -399,7 +552,13 @@ class OutputManager:
 
         def interactive() -> None:
             esc = self._escape or (lambda x: x)
-            self._print_rich(f"[debug][DEBUG] {esc(message)}[/debug]", highlight=False)
+            if self._console and self._text_class:
+                line = self._text_class()
+                line.append_text(self._render_badge("DEBUG", "debug"))
+                line.append(f"  {message}")
+                self._console.print(line, highlight=False)
+            else:
+                self._print_rich(f"[debug][DEBUG] {esc(message)}[/debug]", highlight=False)
 
         self._route_output("debug", message, None, None, interactive)
 
@@ -420,19 +579,29 @@ class OutputManager:
             speed_str = f" • {round(speed / 1024 / 1024, 1)} MB/s" if speed else ""
             step = self._current_step
             subject = step.subject if step else "INFO"
-            prefix = self._format_prefix(subject, step.remote if step else False)
-            style = self._get_style(subject)
-            esc = self._escape or (lambda x: x)
+            remote = step.remote if step else False
 
             bar_width = 20
             filled = int(bar_width * current / total) if total > 0 else 0
             bar = "━" * filled + ("╸" + "─" * (bar_width - filled - 1) if filled < bar_width else "")
 
             msg = message or "Transferring"
-            self._print_rich(
-                f"{bar} {percent}% [{style}]{esc(prefix)}[/{style}] {esc(msg)}: {current_mb}/{total_mb} MB{speed_str}",
-                end="\r", highlight=False
-            )
+
+            if self._console and self._text_class:
+                badges = self._render_badges(subject, remote)
+                line = self._text_class()
+                line.append(f"{bar} {percent}% ")
+                line.append_text(badges)
+                line.append(f"  {msg}: {current_mb}/{total_mb} MB{speed_str}")
+                self._console.print(line, end="\r", highlight=False)
+            else:
+                prefix = self._format_prefix(subject, remote)
+                esc = self._escape or (lambda x: x)
+                style = self._get_style(subject)
+                self._print_rich(
+                    f"{bar} {percent}% [{style}]{esc(prefix)}[/{style}] {esc(msg)}: {current_mb}/{total_mb} MB{speed_str}",
+                    end="\r", highlight=False
+                )
 
         self._route_output(
             "progress", message,
@@ -444,6 +613,12 @@ class OutputManager:
         """Display final sync summary."""
         total_duration = round(time.time() - self._start_time, 1)
         stats["total_duration"] = total_duration
+
+        # Update internal stats for summary rendering
+        if "tables" in stats:
+            self._sync_stats["tables"] = stats["tables"]
+        if "size" in stats:
+            self._sync_stats["size"] = stats["size"]
 
         parts = []
         if "tables" in stats:
@@ -465,7 +640,7 @@ class OutputManager:
         def interactive() -> None:
             # Clear progress bar line and show summary
             print("\033[2K\r", end="")
-            self._print_rich(f"[success]✓ Sync complete: {summary_str}[/success]", highlight=False)
+            self._print_summary_line()
 
         self._route_output("summary", summary_str, stats, ci, interactive)
 

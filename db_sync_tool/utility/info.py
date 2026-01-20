@@ -20,26 +20,54 @@ def print_header(mute, verbose=0):
     if mute is False:
         _colors = get_random_colors()
         if verbose >= 1:
-            # Full header for verbose mode
-            print(
-                output.CliFormat.BLACK + '##############################################' + output.CliFormat.ENDC)
-            print(
-                output.CliFormat.BLACK + '#                                            #' + output.CliFormat.ENDC)
-            print(
-                output.CliFormat.BLACK + '#' + output.CliFormat.ENDC + '              ' + _colors[0] + '⥣ ' + _colors[1] + '⥥ ' + output.CliFormat.ENDC + ' db sync tool             ' + output.CliFormat.BLACK + '#' + output.CliFormat.ENDC)
-            print(
-                output.CliFormat.BLACK + '#                   v' + info.__version__ + '                  #' + output.CliFormat.ENDC)
-            print(output.CliFormat.BLACK + '#  ' + info.__homepage__ + '  #' + output.CliFormat.ENDC)
-            print(
-                output.CliFormat.BLACK + '#                                            #' + output.CliFormat.ENDC)
-            print(
-                output.CliFormat.BLACK + '##############################################' + output.CliFormat.ENDC)
+            # Full header for verbose mode using Rich Panel
+            _print_rich_header(_colors)
         else:
             # Compact header for default mode
             print(
                 output.CliFormat.BLACK + _colors[0] + '⥣ ' + _colors[1] + '⥥ ' + output.CliFormat.ENDC +
                 output.CliFormat.BLACK + 'db-sync-tool v' + info.__version__ + output.CliFormat.ENDC)
         check_updates()
+
+
+def _print_rich_header(_colors):
+    """Print header using Rich if available, fallback to ASCII."""
+    try:
+        from rich.console import Console
+        from rich.text import Text
+
+        console = Console(force_terminal=True)
+
+        # Build simple header line
+        header = Text()
+        header.append("⥣ ", style=_color_to_rich(_colors[0]))
+        header.append("⥥ ", style=_color_to_rich(_colors[1]))
+        header.append("db-sync-tool ", style="bold")
+        header.append(f"v{info.__version__}", style="dim")
+
+        console.print(header)
+        console.print()  # Empty line after header
+    except ImportError:
+        # Fallback to simple ASCII header
+        print(
+            _colors[0] + '⥣ ' + _colors[1] + '⥥ ' + output.CliFormat.ENDC +
+            output.CliFormat.BOLD + 'db-sync-tool ' + output.CliFormat.ENDC +
+            output.CliFormat.BLACK + 'v' + info.__version__ + output.CliFormat.ENDC
+        )
+        print()
+
+
+def _color_to_rich(cli_color):
+    """Convert CliFormat color to Rich style."""
+    color_map = {
+        output.CliFormat.BEIGE: "cyan",
+        output.CliFormat.PURPLE: "magenta",
+        output.CliFormat.BLUE: "blue",
+        output.CliFormat.YELLOW: "yellow",
+        output.CliFormat.GREEN: "green",
+        output.CliFormat.RED: "red",
+    }
+    return color_map.get(cli_color, "white")
 
 
 def check_updates():
