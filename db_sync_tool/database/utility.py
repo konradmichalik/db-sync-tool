@@ -299,7 +299,8 @@ def get_database_tables() -> str:
 def generate_mysql_credentials(client: str, force_password: bool = True) -> str:
     """
     Generate the needed database credential information for the mysql command.
-    Uses --defaults-file to prevent passwords from appearing in process lists.
+    Uses --defaults-extra-file to prevent passwords from appearing in process lists
+    while preserving system MySQL configuration (including SSL settings).
 
     :param client: Client identifier
     :param force_password: Kept for backwards compatibility, now always uses secure method
@@ -307,9 +308,10 @@ def generate_mysql_credentials(client: str, force_password: bool = True) -> str:
     """
     try:
         config_path = get_mysql_config_path(client)
-        # Note: --defaults-file must NOT have quotes around the path
+        # Note: --defaults-extra-file must NOT have quotes around the path
         # mysqldump/mysql parse this option specially
-        credentials = f"--defaults-file={config_path}"
+        # Using --defaults-extra-file (not --defaults-file) preserves system config
+        credentials = f"--defaults-extra-file={config_path}"
 
         cfg = system.get_typed_config()
         if cfg.verbose:

@@ -56,7 +56,7 @@ def create_origin_database_dump():
             _mysqldump_options = _mysqldump_options + f'{cfg.additional_mysqldump_options} '
 
         # Run mysql dump command
-        # Note: --defaults-file MUST be the first option for MySQL/MariaDB
+        # Note: --defaults-extra-file MUST be the first option for MySQL/MariaDB
         _db_name = quote_shell_arg(cfg.origin.db.name)
         _safe_dump_path = quote_shell_arg(_dump_file_path)
 

@@ -65,8 +65,9 @@ def sanitize_command_for_logging(command: str) -> str:
         (r"SSHPASS='[^']*'", "SSHPASS='***'"),
         (r'SSHPASS="[^"]*"', 'SSHPASS="***"'),
         (r"SSHPASS=[^\s]+", "SSHPASS=***"),
-        # MySQL defaults-file (mask path to prevent disclosure)
+        # MySQL defaults-file/defaults-extra-file (mask path to prevent disclosure)
         (r"--defaults-file=[^\s]+", "--defaults-file=***"),
+        (r"--defaults-extra-file=[^\s]+", "--defaults-extra-file=***"),
         # Base64 encoded credentials
         (r"echo '[A-Za-z0-9+/=]{20,}' \| base64", "echo '***' | base64"),
     ]
