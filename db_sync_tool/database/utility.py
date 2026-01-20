@@ -51,8 +51,6 @@ def create_mysql_config_file(client: str) -> str:
         config_content += f"host={db_config.host}\n"
     if db_config.port:
         config_content += f"port={db_config.port}\n"
-    # Disable SSL by default
-    config_content += "ssl=0\n"
 
     random_suffix = secrets.token_hex(8)
     config_path = f"/tmp/.my_{random_suffix}.cnf"
