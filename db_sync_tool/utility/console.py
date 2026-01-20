@@ -304,24 +304,14 @@ class OutputManager:
         if match:
             self._sync_stats["tables"] = int(match.group(1))
 
-        # Extract SSH connection info for origin/target hosts
-        # Pattern: "Initialize remote SSH connection user@host"
-        match = re.search(r"Initialize remote SSH connection\s+(\S+)@(\S+)", message)
-        if match:
-            host = match.group(2)
-            # Determine if this is origin or target based on current step context
-            if self._current_step and "ORIGIN" in self._current_step.subject.upper():
-                self._sync_stats["origin_host"] = host
-            elif self._current_step and "TARGET" in self._current_step.subject.upper():
-                self._sync_stats["target_host"] = host
-
-        # Extract local path info for local hosts
-        if "Checking database configuration" in message and not self._sync_stats.get("origin_host"):
-            if self._current_step and "ORIGIN" in self._current_step.subject.upper():
-                self._sync_stats["origin_host"] = "local"
-        if "Checking database configuration" in message and not self._sync_stats.get("target_host"):
-            if self._current_step and "TARGET" in self._current_step.subject.upper():
-                self._sync_stats["target_host"] = "local"
+        # Extract host info from "Checking database configuration" message
+        # Use the remote flag from current step to determine local vs remote
+        if "Checking database configuration" in message and self._current_step:
+            location = "remote" if self._current_step.remote else "local"
+            if "ORIGIN" in self._current_step.subject.upper() and not self._sync_stats.get("origin_host"):
+                self._sync_stats["origin_host"] = location
+            elif "TARGET" in self._current_step.subject.upper() and not self._sync_stats.get("target_host"):
+                self._sync_stats["target_host"] = location
 
     def track_stat(self, key: str, value: Any) -> None:
         """Track a sync statistic for the final summary."""
