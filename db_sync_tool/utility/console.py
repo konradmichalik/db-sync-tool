@@ -470,8 +470,10 @@ class OutputManager:
         else:
             summary = stats_str
 
+        # Escape summary to prevent Rich markup interpretation (e.g., IPv6 addresses with brackets)
+        esc = self._escape or (lambda x: x)
         self._console.print()  # Empty line before summary
-        self._print_rich(f"[green]{ICONS['success']} Sync complete:[/green] {summary}", highlight=False)
+        self._print_rich(f"[green]{ICONS['success']} Sync complete:[/green] {esc(summary)}", highlight=False)
 
     def error(self, message: str, exception: Exception | None = None) -> None:
         """Display an error message."""
