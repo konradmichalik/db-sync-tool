@@ -6,6 +6,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+- **Python 3.10+ required** - Removed support for older Python versions
+- **Typer CLI** - argparse removed, Typer is now the only CLI framework
+- **rsync default** - rsync is now the default transfer method (SFTP remains as fallback)
+- **SSH Host Key Verification** - Enabled by default to prevent MITM attacks
+
+### Added
+- Rich-based CLI output with colored badges and table formatting
+- Structured JSON logging (`--json-log` flag)
+- File synchronization via rsync (`--with-files`, `--files-only` flags)
+- Auto-discovery for config files in project directories
+- Python 3.14 support
+- Custom exception hierarchy (`DbSyncError`, `ValidationError`, `ParsingError`, etc.)
+- VitePress documentation site
+
+### Changed
+- Performance improvements: streaming compression, batch truncate (80-90% fewer roundtrips), mysqldump optimization flags
+- Complete migration to typed dataclasses with type hints
+- Refactored parsing functions to dedicated module
+
+### Security
+- Shell argument quoting and table name validation against injection attacks
+- MySQL credentials via `--defaults-file` (no longer visible in process lists)
+- Randomized temp paths with restricted permissions
+- Credentials sanitized from log output
+
+### Fixed
+- Rich output escaping for IPv6 addresses
+- DATABASE_URL parsing with special characters in passwords
+- Graceful SFTP fallback when rsync unavailable
+
 ## [2.11.12] - 2025-11-05
 
 - fix: set type for param --target-after-dump to str
