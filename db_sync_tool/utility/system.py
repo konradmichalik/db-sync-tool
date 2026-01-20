@@ -383,6 +383,8 @@ def check_authorizations():
     """
     check_authorization(mode.Client.ORIGIN)
     check_authorization(mode.Client.TARGET)
+    # Refresh typed config after authorization changes (ssh_agent, password)
+    refresh_typed_config()
 
 
 def check_authorization(client):
