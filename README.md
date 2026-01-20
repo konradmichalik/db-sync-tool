@@ -50,14 +50,7 @@ Find all configuration options, sync modes, and framework guides in the [officia
 
 ## 🧑‍💻 Contributing
 
-```bash
-# Run tests
-./tests/run-unit-tests.sh
-./tests/run-integration-tests.sh
-
-# Lint
-pipx run ruff check db_sync_tool/
-```
+Please have a look at [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## ⭐ License
 
