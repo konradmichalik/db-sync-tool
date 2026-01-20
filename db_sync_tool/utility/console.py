@@ -486,6 +486,8 @@ class OutputManager:
                 print(f"[ERROR] {message}", file=sys.stderr)
 
         def interactive() -> None:
+            # Clear line to prevent leftover characters from previous output
+            print("\033[2K\r", end="")
             esc = self._escape or (lambda x: x)
             if self._console and self._text_class:
                 line = self._text_class()
@@ -514,6 +516,8 @@ class OutputManager:
                 print(f"[WARNING] {message}")
 
         def interactive() -> None:
+            # Clear line to prevent leftover characters from previous output
+            print("\033[2K\r", end="")
             esc = self._escape or (lambda x: x)
             if self._console and self._text_class:
                 line = self._text_class()
