@@ -85,7 +85,7 @@ command -v gh >/dev/null 2>&1 || warn "gh CLI not found - GitHub release will be
 success "Pre-flight checks passed"
 
 # Step 2: Show current version
-CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]+' db_sync_tool/info.py)
+CURRENT_VERSION=$(grep '__version__' db_sync_tool/info.py | sed 's/.*"\(.*\)"/\1/')
 info "Current version: $CURRENT_VERSION"
 info "New version: $VERSION"
 echo ""
@@ -146,8 +146,13 @@ success "Created tag $TAG"
 info "Building distribution..."
 rm -rf build/ dist/ *.egg-info
 
-python3 -m pip install --quiet --upgrade setuptools wheel build
-python3 -m build
+# Use pipx for build tools (works with Homebrew Python)
+if command -v pipx >/dev/null 2>&1; then
+    pipx run build
+else
+    python3 -m pip install --user --quiet --upgrade setuptools wheel build
+    python3 -m build
+fi
 
 success "Built distribution:"
 ls -la dist/
@@ -156,12 +161,16 @@ ls -la dist/
 echo ""
 if confirm "Upload to PyPI?"; then
     info "Uploading to PyPI..."
-    python3 -m pip install --quiet --upgrade twine
-    python3 -m twine upload dist/*
+    if command -v pipx >/dev/null 2>&1; then
+        pipx run twine upload dist/*
+    else
+        python3 -m pip install --user --quiet --upgrade twine
+        python3 -m twine upload dist/*
+    fi
     success "Uploaded to PyPI"
 else
     warn "Skipped PyPI upload"
-    info "To upload later: python3 -m twine upload dist/*"
+    info "To upload later: pipx run twine upload dist/*"
 fi
 
 # Step 10: Push to remote
