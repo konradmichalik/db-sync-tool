@@ -6,6 +6,7 @@ rsync script
 
 import re
 from db_sync_tool.utility import mode, system, output
+from db_sync_tool.utility.console import get_output_manager
 
 # Default options for rsync command
 # https://wiki.ubuntuusers.de/rsync/
@@ -94,9 +95,7 @@ def read_stats(stats):
     :param stats: String
     :return:
     """
-    cfg = system.get_typed_config()
-    if cfg.verbose:
-        print(f'{output.Subject.DEBUG}{output.CliFormat.BLACK}{stats}{output.CliFormat.ENDC}')
+    get_output_manager().debug(stats)
 
     _file_size = parse_string(stats, r'Total transferred file size:\s*([\d.]+[MKG]?)')
 

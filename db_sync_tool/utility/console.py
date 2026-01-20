@@ -664,6 +664,80 @@ class OutputManager:
             print(f"\033[0Ksection_end:{int(time.time())}:{self._gitlab_section_id}\r\033[0K")
             self._gitlab_section_id = None
 
+    def build_prompt(
+        self,
+        message: str,
+        subject: str = "INFO",
+        remote: bool = False,
+    ) -> str:
+        """
+        Build a styled prompt string for use with input() or getpass().
+
+        This clears any progress bar line and returns a plain-text prompt
+        suitable for terminal input functions.
+
+        Args:
+            message: The prompt message
+            subject: Subject type (TARGET, ORIGIN, INFO, etc.)
+            remote: Whether operation is on remote host
+
+        Returns:
+            Plain-text prompt string with ANSI styling
+        """
+        # Clear any progress bar line
+        print("\033[2K\r", end="", flush=True)
+
+        prefix = self._format_prefix(subject, remote)
+        return f"{prefix} {message}"
+
+    def confirm(
+        self,
+        message: str,
+        subject: str = "INFO",
+        remote: bool = False,
+        default: bool = True,
+    ) -> bool:
+        """
+        Display a styled confirmation prompt and return user response.
+
+        Args:
+            message: The confirmation message/question
+            subject: Subject type (TARGET, ORIGIN, INFO, etc.)
+            remote: Whether operation is on remote host
+            default: Default response when user presses Enter (True=yes, False=no)
+
+        Returns:
+            True for yes, False for no
+        """
+        # Clear any progress bar line
+        print("\033[2K\r", end="", flush=True)
+
+        # Build styled prompt
+        if default:
+            choice_hint = "[Y|n]"
+        else:
+            choice_hint = "[y|N]"
+
+        if self._console and self._text_class:
+            # Rich-styled prompt
+            badges = self._render_badges(subject, remote)
+            prompt_line = self._text_class()
+            prompt_line.append_text(badges)
+            prompt_line.append(f"  {message} {choice_hint}: ")
+            self._console.print(prompt_line, end="", highlight=False)
+        else:
+            # Fallback to plain text
+            prefix = self._format_prefix(subject, remote)
+            print(f"{prefix} {message} {choice_hint}: ", end="", flush=True)
+
+        while True:
+            ans = input().lower()
+            if not ans:
+                return default
+            if ans in ('y', 'n'):
+                return ans == 'y'
+            print('Please enter y or n.')
+
 
 # Global singleton
 _output_manager: OutputManager | None = None

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, TYPE_CHECKING
 import yaml
 from db_sync_tool.utility import log, parser, mode, helper, output, validation
+from db_sync_tool.utility.console import get_output_manager
 from db_sync_tool.utility.exceptions import ConfigError
 from db_sync_tool.remote import utility as remote_utility
 
@@ -431,13 +432,11 @@ def get_password_by_user(client):
     :param client: String
     :return: String password
     """
-    _password = getpass.getpass(
-        output.message(
-            output.Subject.INFO,
-            'SSH password ' + helper.get_ssh_host_name(client, True) + ': ',
-            False
-        ) or ''
+    _prompt = get_output_manager().build_prompt(
+        f'SSH password {helper.get_ssh_host_name(client, True)}: ',
+        subject='INFO'
     )
+    _password = getpass.getpass(_prompt)
 
     while _password.strip() == '':
         output.message(
@@ -446,13 +445,11 @@ def get_password_by_user(client):
             True
         )
 
-        _password = getpass.getpass(
-            output.message(
-                output.Subject.INFO,
-                'SSH password ' + helper.get_ssh_host_name(client, True) + ': ',
-                False
-            ) or ''
+        _prompt = get_output_manager().build_prompt(
+            f'SSH password {helper.get_ssh_host_name(client, True)}: ',
+            subject='INFO'
         )
+        _password = getpass.getpass(_prompt)
 
     return _password
 

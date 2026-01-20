@@ -6,6 +6,7 @@ Process script
 import semantic_version
 
 from db_sync_tool.utility import parser, mode, system, helper, output
+from db_sync_tool.utility.console import get_output_manager
 from db_sync_tool.utility.helper import quote_shell_arg
 from db_sync_tool.database import utility as database_utility
 
@@ -124,13 +125,11 @@ def import_database_dump():
             _host_name = helper.get_ssh_host_name(mode.Client.TARGET, True) if mode.is_remote(
                 mode.Client.TARGET) else 'local'
 
-            _input = helper.confirm(
-                output.message(
-                    output.Subject.TARGET,
-                    f'Are you sure, you want to import the dump file into {_host_name} database?',
-                    False
-                ),
-                True
+            _input = get_output_manager().confirm(
+                f'Are you sure you want to import the dump file into {_host_name} database?',
+                subject='TARGET',
+                remote=mode.is_remote(mode.Client.TARGET),
+                default=True
             )
 
             if not _input: return
