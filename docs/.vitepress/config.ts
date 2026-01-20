@@ -38,7 +38,8 @@ export default defineConfig({
           items: [
             { text: 'Introduction', link: '/getting-started/' },
             { text: 'Installation', link: '/getting-started/installation' },
-            { text: 'Quick Start', link: '/getting-started/quickstart' }
+            { text: 'Quick Start', link: '/getting-started/quickstart' },
+            { text: 'Upgrade to v3.0', link: '/getting-started/upgrade-v3' }
           ]
         },
         {
