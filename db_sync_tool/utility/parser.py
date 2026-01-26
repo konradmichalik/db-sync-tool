@@ -23,7 +23,8 @@ class Framework:
 mapping = {
     Framework.TYPO3: [
         'LocalConfiguration.php',
-        'AdditionalConfiguration.php'
+        'AdditionalConfiguration.php',
+        'additional.php',  # TYPO3 v13+
     ],
     Framework.SYMFONY: [
         '.env',
