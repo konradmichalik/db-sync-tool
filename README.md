@@ -5,9 +5,9 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/db_sync_tool-kmi)](https://pypi.org/project/db-sync-tool-kmi/)
 [![PyPI](https://img.shields.io/pypi/v/db_sync_tool-kmi)](https://pypi.org/project/db-sync-tool-kmi/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/db-sync-tool-kmi)](https://pypi.org/project/db-sync-tool-kmi/)
-[![Packagist](https://img.shields.io/packagist/v/kmi/db-sync-tool)](https://packagist.org/packages/kmi/db-sync-tool)
+[![Downloads](https://static.pepy.tech/badge/db-sync-tool-kmi)](https://pepy.tech/project/db-sync-tool-kmi)
 
-# Database Sync Tool
+# Db Sync Tool
 
 A Python CLI to synchronize MySQL/MariaDB databases between systems with automatic credential extraction.
 
