@@ -37,6 +37,22 @@ def test_typo3_v7_legacy(run_sync):
     assert get_row_count("db2", "person") == 3
 
 
+@pytest.mark.integration
+def test_typo3_v13_settings(run_sync):
+    """TYPO3 v13+ with settings.php (replaces LocalConfiguration.php)."""
+    result = run_sync("www2", f"{CONFIGS}/typo3v13_settings/sync-www1-to-local.json")
+    assert result.returncode == 0, result.stderr
+    assert get_row_count("db2", "person") == 3
+
+
+@pytest.mark.integration
+def test_typo3_v13_additional(run_sync):
+    """TYPO3 v13+ with additional.php (replaces AdditionalConfiguration.php)."""
+    result = run_sync("www2", f"{CONFIGS}/typo3v13_additional/sync-www1-to-local.json")
+    assert result.returncode == 0, result.stderr
+    assert get_row_count("db2", "person") == 3
+
+
 # Symfony
 
 @pytest.mark.integration

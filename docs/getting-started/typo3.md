@@ -4,12 +4,23 @@ db-sync-tool can automatically detect database credentials from [TYPO3](https://
 
 ## Configuration Files
 
-The tool supports two configuration file formats:
+The tool supports the following configuration file formats:
 
-| File | Description |
-|------|-------------|
-| `LocalConfiguration.php` | Standard TYPO3 configuration |
-| `.env` | Environment-based configuration |
+| File | TYPO3 Version | Description |
+|------|---------------|-------------|
+| `LocalConfiguration.php` | v7.6 - v12.x | Standard TYPO3 configuration |
+| `settings.php` | v13+ | New location in `config/system/settings.php` |
+| `AdditionalConfiguration.php` | v7.6 - v12.x | Override configuration |
+| `additional.php` | v13+ | New location in `config/system/additional.php` |
+| `.env` | v9+ | Environment-based configuration |
+
+::: tip TYPO3 v13 Changes
+In TYPO3 v13, configuration files were relocated:
+- `typo3conf/LocalConfiguration.php` → `config/system/settings.php` (Composer) or `typo3conf/system/settings.php` (Classic)
+- `typo3conf/AdditionalConfiguration.php` → `config/system/additional.php` (Composer) or `typo3conf/system/additional.php` (Classic)
+
+Both old and new paths are supported. Auto-detection works when `settings.php` is located in `/config/system/` or `/typo3conf/system/`.
+:::
 
 See the [TYPO3 documentation](https://docs.typo3.org/m/typo3/reference-coreapi/main/en-us/Configuration/ConfigurationFiles/Index.html) for more information.
 
@@ -28,6 +39,8 @@ db_sync_tool \
 
 ## Configuration File
 
+### TYPO3 v7.6 - v12.x
+
 ```yaml
 # config.yaml
 type: TYPO3
@@ -37,6 +50,19 @@ origin:
   host: prod.example.com
   user: ssh_user
   path: /var/www/html/shared/typo3conf/LocalConfiguration.php
+```
+
+### TYPO3 v13+
+
+```yaml
+# config.yaml
+type: TYPO3
+target:
+  path: /var/www/html/config/system/settings.php
+origin:
+  host: prod.example.com
+  user: ssh_user
+  path: /var/www/html/shared/config/system/settings.php
 ```
 
 ## Complete Example

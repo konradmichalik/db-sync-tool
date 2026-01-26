@@ -23,7 +23,8 @@ def check_configuration(client):
     client_cfg = cfg.get_client(client)
     _path = client_cfg.path
 
-    if 'LocalConfiguration' in _path:
+    # TYPO3 v13+ uses settings.php, older versions use LocalConfiguration.php
+    if 'LocalConfiguration' in _path or _path.endswith('settings.php'):
         stdout = mode.run_command(
             helper.get_command(client, 'php') + ' -r "echo json_encode(include \'' +
             _path + '\');"',
@@ -45,8 +46,9 @@ def check_configuration(client):
             'port': get_database_setting_from_env(client, str(db_cfg.port) if db_cfg.port else 'TYPO3_CONF_VARS__DB__Connections__Default__port', _path) or 3306,
             'user': get_database_setting_from_env(client, db_cfg.user or 'TYPO3_CONF_VARS__DB__Connections__Default__user', _path),
         }
-    elif 'AdditionalConfiguration.php' in _path:
-        # Try to parse settings from AdditionalConfiguration.php file
+    # TYPO3 v13+ uses additional.php, older versions use AdditionalConfiguration.php
+    elif 'AdditionalConfiguration.php' in _path or _path.endswith('additional.php'):
+        # Try to parse settings from AdditionalConfiguration.php or additional.php file
         _db_config = {
             'name': get_database_setting_from_additional_configuration(client, 'dbname', _path),
             'host': get_database_setting_from_additional_configuration(client, 'host', _path),
@@ -59,7 +61,7 @@ def check_configuration(client):
         raise ParsingError(
             f'Can\'t extract database information from given path {_path}. '
             f'Can only extract settings from the following files: LocalConfiguration.php, '
-            f'AdditionalConfiguration.php, .env'
+            f'settings.php (v13+), AdditionalConfiguration.php, additional.php (v13+), .env'
         )
 
     system.set_database_config(client, helper.clean_db_config(_db_config))

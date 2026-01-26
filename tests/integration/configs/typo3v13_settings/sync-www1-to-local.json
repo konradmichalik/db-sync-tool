@@ -1,0 +1,11 @@
+{
+  "target": {
+    "path": "/var/www/html/tests/integration/fixtures/www2/config/system/settings.php"
+  },
+  "origin": {
+    "host": "www1",
+    "user": "user",
+    "password": "password",
+    "path": "/var/www/html/tests/integration/fixtures/www1/config/system/settings.php"
+  }
+}
