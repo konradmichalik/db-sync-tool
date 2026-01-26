@@ -54,7 +54,8 @@ db_sync_tool production local
 
 | Framework | Version | Config File |
 |-----------|---------|-------------|
-| [TYPO3](/getting-started/typo3) | >= 7.6 | `LocalConfiguration.php`, `settings.php` (v13+), `.env` |
+| [TYPO3](/getting-started/typo3) | 7.6 - 11.x | `LocalConfiguration.php` or `.env` |
+| [TYPO3](/getting-started/typo3) | >= 12 | `settings.php` or `.env` |
 | [Symfony](/getting-started/symfony) | >= 2.8 | `.env` or `parameters.yml` |
 | [Drupal](/getting-started/drupal) | >= 8.0 | `settings.php` (via drush) |
 | [WordPress](/getting-started/wordpress) | >= 5.0 | `wp-config.php` |
