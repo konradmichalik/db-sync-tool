@@ -205,7 +205,17 @@ def automatic_type_detection():
     for _client in [mode.Client.ORIGIN, mode.Client.TARGET]:
         client_cfg = cfg.get_client(_client)
         if client_cfg.path != '':
-            file = helper.get_file_from_path(client_cfg.path)
+            _path = client_cfg.path
+            file = helper.get_file_from_path(_path)
+
+            # Path-based disambiguation for ambiguous filenames
+            # TYPO3 v13+ uses settings.php in /config/system/ or /typo3conf/system/
+            if file == 'settings.php':
+                if '/config/system/' in _path or '/typo3conf/system/' in _path:
+                    detected_type = Framework.TYPO3
+                    break
+
+            # Fall back to filename-based matching
             for _key, _files in mapping.items():
                 if file in _files:
                     detected_type = _key

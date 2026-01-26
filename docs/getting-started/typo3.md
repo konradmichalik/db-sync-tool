@@ -16,12 +16,10 @@ The tool supports the following configuration file formats:
 
 ::: tip TYPO3 v13 Changes
 In TYPO3 v13, configuration files were relocated:
-- `typo3conf/LocalConfiguration.php` → `config/system/settings.php`
-- `typo3conf/AdditionalConfiguration.php` → `config/system/additional.php`
+- `typo3conf/LocalConfiguration.php` → `config/system/settings.php` (Composer) or `typo3conf/system/settings.php` (Classic)
+- `typo3conf/AdditionalConfiguration.php` → `config/system/additional.php` (Composer) or `typo3conf/system/additional.php` (Classic)
 
-Both old and new paths are supported.
-
-**Important:** When using `settings.php`, you must specify `type: TYPO3` explicitly in your config, as the filename is also used by Drupal.
+Both old and new paths are supported. Auto-detection works when `settings.php` is located in `/config/system/` or `/typo3conf/system/`.
 :::
 
 See the [TYPO3 documentation](https://docs.typo3.org/m/typo3/reference-coreapi/main/en-us/Configuration/ConfigurationFiles/Index.html) for more information.
