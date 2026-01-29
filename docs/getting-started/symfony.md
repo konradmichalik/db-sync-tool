@@ -17,7 +17,7 @@ Example for [receiver mode](/reference/sync-modes#receiver):
 
 ```bash
 db_sync_tool \
-    --type SYMFONY \
+    --type Symfony \
     --origin-host <ORIGIN_HOST> \
     --origin-user <ORIGIN_USER> \
     --origin-path <ORIGIN_PATH> \
@@ -30,7 +30,7 @@ db_sync_tool \
 
 ```yaml
 # config.yaml
-type: SYMFONY
+type: Symfony
 target:
   path: /var/www/local/project/.env
 origin:
@@ -49,7 +49,7 @@ DATABASE_URL="mysql://user:password@localhost:3306/dbname"
 
 ```yaml
 # config.yaml
-type: SYMFONY
+type: Symfony
 target:
   path: /var/www/local/project/app/config/parameters.yml
 origin:
@@ -61,7 +61,7 @@ origin:
 ## Complete Example
 
 ```yaml
-type: SYMFONY
+type: Symfony
 target:
   path: /var/www/local/project/.env
 origin:
