@@ -12,6 +12,7 @@ Functions here are imported and used by the framework recipe modules.
 
 from urllib.parse import urlparse, unquote
 from db_sync_tool.utility.exceptions import ParsingError
+from db_sync_tool.utility.pure import remove_surrounding_quotes
 
 
 def parse_symfony_database_url(db_credentials: str) -> dict:
@@ -31,6 +32,9 @@ def parse_symfony_database_url(db_credentials: str) -> dict:
         url = db_credentials[len('DATABASE_URL='):]
     else:
         url = db_credentials
+
+    # Strip surrounding quotes (Symfony .env files commonly use them, see: https://symfony.com/doc/current/doctrine.html)
+    url = remove_surrounding_quotes(url)
 
     parsed = urlparse(url)
 
