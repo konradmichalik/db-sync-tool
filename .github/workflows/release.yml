@@ -1,0 +1,10 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    uses: konradmichalik/reusable-github-actions/.github/workflows/release.yml@main
