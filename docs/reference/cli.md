@@ -58,7 +58,7 @@ db_sync_tool [OPTIONS] [ORIGIN] [TARGET]
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--type` | `-t` | Framework type: `TYPO3`, `SYMFONY`, `DRUPAL`, `WORDPRESS`, `LARAVEL` |
+| `--type` | `-t` | Framework type: `TYPO3`, `Symfony`, `Drupal`, `Wordpress`, `Laravel` |
 
 ## Transfer Options
 

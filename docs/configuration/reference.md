@@ -5,7 +5,7 @@ Complete reference for `config.yaml` (or `config.json`).
 ## Full Configuration
 
 ```yaml
-# Application type: TYPO3 | SYMFONY | DRUPAL | WORDPRESS | LARAVEL
+# Application type: TYPO3 | Symfony | Drupal | Wordpress | Laravel
 # Not necessary if database credentials are provided manually
 type:
 

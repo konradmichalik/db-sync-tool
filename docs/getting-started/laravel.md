@@ -12,7 +12,7 @@ Example for [receiver mode](/reference/sync-modes#receiver):
 
 ```bash
 db_sync_tool \
-    --type LARAVEL \
+    --type Laravel \
     --origin-host <ORIGIN_HOST> \
     --origin-user <ORIGIN_USER> \
     --origin-path <ORIGIN_PATH> \
@@ -23,7 +23,7 @@ db_sync_tool \
 
 ```yaml
 # config.yaml
-type: LARAVEL
+type: Laravel
 target:
   path: /var/www/local/laravel/.env
 origin:
@@ -35,7 +35,7 @@ origin:
 ## Complete Example
 
 ```yaml
-type: LARAVEL
+type: Laravel
 target:
   path: /var/www/local/laravel/.env
 origin:
