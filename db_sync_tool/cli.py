@@ -232,7 +232,7 @@ def main(
         typer.Option(
             "--type",
             "-t",
-            help="Define the framework type [TYPO3, Symfony, Drupal, Wordpress, Laravel]",
+            help="Define the framework type [TYPO3, Symfony, Drupal, WordPress, Laravel]",
             rich_help_panel="Framework",
         ),
     ] = None,

@@ -19,7 +19,7 @@ Example for [receiver mode](/reference/sync-modes#receiver):
 
 ```bash
 db_sync_tool \
-    --type DRUPAL \
+    --type Drupal \
     --origin-host <ORIGIN_HOST> \
     --origin-user <ORIGIN_USER> \
     --origin-path <ORIGIN_PATH> \
@@ -32,7 +32,7 @@ Point the `path` to the Drupal installation directory:
 
 ```yaml
 # config.yaml
-type: DRUPAL
+type: Drupal
 target:
   path: /var/www/local/drupal
 origin:
@@ -44,7 +44,7 @@ origin:
 ## Complete Example
 
 ```yaml
-type: DRUPAL
+type: Drupal
 target:
   path: /var/www/local/drupal
 origin:

@@ -15,7 +15,7 @@ class Framework:
     TYPO3 = 'TYPO3'
     SYMFONY = 'Symfony'
     DRUPAL = 'Drupal'
-    WORDPRESS = 'Wordpress'
+    WORDPRESS = 'WordPress'
     LARAVEL = 'Laravel'
     MANUAL = 'Manual'
 
@@ -70,7 +70,7 @@ def get_database_configuration(client):
             # Drupal sync base
             _base = Framework.DRUPAL
         elif _type == 'wordpress':
-            # Wordpress sync base
+            # WordPress sync base
             _base = Framework.WORDPRESS
         elif _type == 'laravel':
             # Laravel sync base
