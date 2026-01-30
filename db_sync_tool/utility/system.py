@@ -115,6 +115,22 @@ def set_is_same_client(value: bool) -> None:
     _set_config_value('is_same_client', value)
 
 
+_FRAMEWORK_TYPE_MAP = {
+    'typo3': 'TYPO3',
+    'symfony': 'Symfony',
+    'drupal': 'Drupal',
+    'wordpress': 'Wordpress',
+    'laravel': 'Laravel',
+}
+
+
+def _normalize_framework_type() -> None:
+    """Normalize framework type to canonical casing before validation."""
+    _type = config.get('type')
+    if isinstance(_type, str):
+        config['type'] = _FRAMEWORK_TYPE_MAP.get(_type.lower(), _type)
+
+
 def set_use_sshpass(value: bool) -> None:
     """Set use_sshpass flag."""
     _set_config_value('use_sshpass', value)
@@ -206,6 +222,7 @@ def get_configuration(host_config, args = {}):
     link_configuration_with_hosts()
     build_config(args)
 
+    _normalize_framework_type()
     validation.check(config)
     check_options()
 
