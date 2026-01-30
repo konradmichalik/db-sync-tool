@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Wordpress script
+WordPress script
 """
 
 from db_sync_tool.utility import mode, system, helper

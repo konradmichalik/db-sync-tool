@@ -14,7 +14,7 @@ Example for [receiver mode](/reference/sync-modes#receiver):
 
 ```bash
 db_sync_tool \
-    --type Wordpress \
+    --type WordPress \
     --origin-host <ORIGIN_HOST> \
     --origin-user <ORIGIN_USER> \
     --origin-path <ORIGIN_PATH> \
@@ -25,7 +25,7 @@ db_sync_tool \
 
 ```yaml
 # config.yaml
-type: Wordpress
+type: WordPress
 target:
   path: /var/www/local/wordpress/wp-config.php
 origin:
@@ -37,7 +37,7 @@ origin:
 ## Complete Example
 
 ```yaml
-type: Wordpress
+type: WordPress
 target:
   path: /var/www/local/wordpress/wp-config.php
 origin:

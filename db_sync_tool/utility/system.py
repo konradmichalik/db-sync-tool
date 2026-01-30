@@ -119,7 +119,7 @@ _FRAMEWORK_TYPE_MAP = {
     'typo3': 'TYPO3',
     'symfony': 'Symfony',
     'drupal': 'Drupal',
-    'wordpress': 'Wordpress',
+    'wordpress': 'WordPress',
     'laravel': 'Laravel',
 }
 

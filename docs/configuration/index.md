@@ -73,7 +73,7 @@ target:
 Specify the framework for automatic credential extraction:
 
 ```yaml
-type: TYPO3  # or Symfony, Drupal, Wordpress, Laravel
+type: TYPO3  # or Symfony, Drupal, WordPress, Laravel
 ```
 
 If omitted, the tool attempts to detect the framework from the file path.

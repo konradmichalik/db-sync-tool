@@ -1,5 +1,5 @@
 {
-  "type": "Wordpress",
+  "type": "WordPress",
   "target": {
     "path": "/var/www/html/tests/integration/fixtures/www2/wp-config.php"
   },

@@ -14,7 +14,7 @@ from db_sync_tool.utility.exceptions import ValidationError
 schema = {
     "type": "object",
     "properties": {
-        "type": {"enum": ['TYPO3', 'Symfony', 'Drupal', 'Wordpress', 'Laravel']},
+        "type": {"enum": ['TYPO3', 'Symfony', 'Drupal', 'WordPress', 'Laravel']},
         "log_file": {"type": "string"},
         "ignore_table": {"type": "array"},
         "target": {
