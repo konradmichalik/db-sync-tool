@@ -7,4 +7,4 @@ on:
 
 jobs:
   release:
-    uses: konradmichalik/reusable-github-actions/.github/workflows/release.yml@main
+    uses: konradmichalik/reusable-github-actions/.github/workflows/release.yml@ac6ac4d7829d8e8f85956c7474ee3ff99b98c9ed # 0.0.1
